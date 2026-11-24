@@ -14,7 +14,7 @@ import { MENSAJE_FORMATO, type ModoNumero } from "@/lib/shared/cifras";
  * - Números simples (punto / coma decimal)
  * - Expresiones aritméticas (+, -, *, /, paréntesis)
  * - Strip de adornos visuales (moneda, unidades, sufijos)
- * - Formato 1.200,50 por literal y por modo (SDD-0687); «1,200,500» se rechaza
+ * - Opción A: un separador decimal por literal; agrupaciones rechazadas.
  *
  * Los casos de siempre corren en modo medida, el que conserva la regla vieja
  * (punto o coma decimal). Los casos por modo están en «modos (SDD-0687)».
@@ -206,9 +206,9 @@ describe("parseNumericExpression", () => {
   // ─────────────────────────────────────────────────────────────────
   // Normalización de formato: europeo vs US
   // ─────────────────────────────────────────────────────────────────
-  describe("normalización de miles/decimales", () => {
-    it("formato europeo '1.200,50' → 1200.5 (puntos miles, coma decimal)", () => {
-      expect(parseNumericExpression("1.200,50", "medida")).toEqual({
+  describe("literales humanos sin miles", () => {
+    it("entrada sin miles '1200,50' → 1200.5", () => {
+      expect(parseNumericExpression("1200,50", "medida")).toEqual({
         value: 1200.5,
         error: null,
       });
@@ -225,12 +225,12 @@ describe("parseNumericExpression", () => {
       expect(parseNumericExpression("1,5", "medida")).toEqual({ value: 1.5, error: null });
     });
 
-    it("normaliza cada operando europeo por separado", () => {
+    it("interpreta cada operando decimal por separado", () => {
       expect(parseNumericExpression("1,5 + 2,5", "medida")).toEqual({
         value: 4,
         error: null,
       });
-      expect(parseNumericExpression("1.200,50 + 2.300,50", "medida")).toEqual({
+      expect(parseNumericExpression("1200,50 + 2300,50", "medida")).toEqual({
         value: 3501,
         error: null,
       });
@@ -391,14 +391,14 @@ describe("modos (SDD-0687 §2.1): cada operando se lee según el campo", () => {
   }
 
   it.each([
-    ["1.234,50", "dinero", 1234.5],
+    ["1234,50", "dinero", 1234.5],
     ["12.50", "dinero", 12.5],
     ["12,50", "dinero", 12.5],
     ["1.234", "medida", 1.234],
     ["1,234", "medida", 1.234],
     ["36,500", "tasa", 36.5],
-    ["1.234,50 + 765,50", "dinero", 2000],
-    ["$ 1.234,50", "dinero", 1234.5],
+    ["1234,50 + 765,50", "dinero", 2000],
+    ["$ 1234,50", "dinero", 1234.5],
     ["-12,50", "dinero", -12.5],
   ] as const)("«%s» en %s → %s", (texto, modo, esperado) => {
     expect(valor(texto, modo)).toBe(esperado);
@@ -411,13 +411,13 @@ describe("modos (SDD-0687 §2.1): cada operando se lee según el campo", () => {
     ["10.000", "dinero"],
     ["100 + 1.250", "dinero"],
     ["-1.234", "dinero"],
-    ["36.500", "tasa"],
-  ] as const)("«%s» en %s se rechaza y pide aclarar", (texto, modo) => {
+
+  ] as const)("«%s» en %s se rechaza por precisión", (texto, modo) => {
     const r = parseNumericExpressionDetailed(texto, modo);
     expect(r.status).toBe("invalid");
     expect(r.value).toBeNull();
-    expect(r.pedirAclarar).toBe(true);
-    expect(r.error).toMatch(/se puede leer de dos maneras/);
+    expect(r.pedirAclarar).toBe(false);
+    expect(r.error).toMatch(/máximo 2 decimales/);
   });
 
   it.each(["dinero", "medida", "tasa"] as const)("«1,234.50» se rechaza en %s", (modo) => {
@@ -448,5 +448,27 @@ describe("modos (SDD-0687 §2.1): cada operando se lee según el campo", () => {
     expect(() =>
       parseNumericExpressionDetailed("12", undefined as unknown as ModoNumero),
     ).toThrow();
+  });
+});
+
+describe("SDD-0687 opción A: separadores por operando", () => {
+  it.each(["dinero", "tasa", "medida", "porcentaje"] as const)("punto y coma pueden coexistir en distintos operandos: %s", (modo) => {
+    expect(parseNumericExpressionDetailed("12.5 + 2,5", modo))
+      .toMatchObject({ status: "valid", value: 15, canonical: "15" });
+    expect(parseNumericExpressionDetailed("2 * (1.5 + 0,5)", modo).value).toBe(4);
+    for (const texto of ["1.234,50 + 1", "1 + 1,234.50", "1.234.567 + 1", "1 + 1,234,567"]) {
+      expect(parseNumericExpressionDetailed(texto, modo))
+        .toMatchObject({ status: "invalid", value: null, canonical: null, error: "Escribe el número sin puntos de miles" });
+    }
+  });
+  it("tasa y dinero de precisión especial aceptan el punto de tres cifras", () => {
+    expect(parseNumericExpressionDetailed("36.500 + 0,125", "tasa").value).toBe(36.625);
+    expect(parseNumericExpressionDetailed("3.498 + 0,0005", "dinero", { decimales: 4 }).value).toBe(3.4985);
+  });
+  it.each(["$ 1250,50", "USD 1250.50", "€ 1250,50"])("conserva denominaciones: %s", (texto) => {
+    expect(parseNumericExpressionDetailed(texto, "dinero").value).toBe(1250.5);
+  });
+  it.each(["0.366 m³", "0,366 cbm", "0.366 kg"])("conserva unidades: %s", (texto) => {
+    expect(parseNumericExpressionDetailed(texto, "medida").value).toBe(0.366);
   });
 });

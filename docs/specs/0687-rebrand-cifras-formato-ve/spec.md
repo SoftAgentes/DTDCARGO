@@ -16,9 +16,19 @@ confidencialidad: interno
 > El mismo monto se lee de dos maneras según la pantalla, y lo que se teclea no siempre se entiende como se ve.
 > Sin migraciones y sin datos de producción. Etiquetas: **C** código leído · **M** medido · **I** inferencia · **NV** sin verificar.
 
-## Estado (2026-11-22)
+## Estado (2026-11-24)
 
-Spec propuesta, **esperando la aprobación de Sam**. **Nada implementado.** Número asignado por el Director General (reserva `codex/sdd-reserve-0687`, `4b121866d`). Texto retomado de la rama local `claude/sdd-0687-cifras-formato-ve` (2026-11-20) y vuelto a medir sobre `main` `27d8b46d9`. Va con **revisión previa** (toca montos) y con revisión independiente propia sobre la interpretación de cifras. La implementación entra después, por fases, cuando Sam apruebe esta spec.
+Opción A de entrada elegida por Sam y asignada mediante el Director: un solo
+punto o una sola coma significa decimal; no se aceptan miles en literales humanos.
+Esta enmienda sustituye las reglas de ambigüedad de §§2, 4 y 6 y la regla H1
+histórica de §12. La autorización inicial de implementación se distinguió de la aprobación
+posterior de Sam de la regla y vista previa de NUM-01 (2026-11-24), confirmada
+por el Director en `msg_c31b38185eb6`. No autoriza integración ni fases futuras.
+
+La evidencia anterior sobre `27d8b46d9` se conserva como historia. Esta tarea parte
+de `8580490f8d95872a407ab83ab9acb6b1b265a451`. Se conserva el estado aprobado de
+la spec original sin marcarla done. Regla y vista de la enmienda aprobadas por
+Sam; implementación sujeta a revisión independiente y CI antes de integrar.
 
 ## 1. Problema
 
@@ -47,55 +57,61 @@ Conteos por texto sobre `main` `27d8b46d9`, sin pruebas ni `docs/`; son techo, n
 
 Hoy conviven `$1,234.50`, `1.234,50` y `USD 1.234,50` en el mismo sistema.
 
-## 2. El caso concreto: qué se escribe, qué se entiende hoy y qué se entenderá
+## 2. Entrada humana: opción A (2026-11-24)
 
-Hay **tres caminos de entrada** y no se comportan igual.
+Cada literal se lee por separado, incluido el que aparece en una expresión.
+Un punto o una coma únicos son decimales aunque haya exactamente tres cifras
+después. No se eliminan separadores para inventar miles. Los ceros finales
+cuentan para validar la precisión: `1.250` tiene tres decimales de entrada.
 
-### 2.1 Campos con `<NumericInput>` (analizador `lib/studio/util/parse-numeric-expression.ts:273-311`)
+| Se escribe | Dinero (2 decimales) | Tasa (8) | Medida (4) | Porcentaje (2, 0–100) |
+|---|---|---|---|---|
+| `12.5` · `12,5` · `12.50` · `12,50` | 12.5 | 12.5 | 12.5 | 12.5 |
+| `1234,50` · `1234.50` | 1234.5 | 1234.5 | 1234.5 | Rechazo por rango |
+| `1250` | 1250 | 1250 | 1250 | Rechazo por rango |
+| `0.366` · `0,366` | Rechazo por precisión | 0.366 | 0.366 | Rechazo por precisión |
+| `1.234` · `1,234` | Rechazo por precisión | 1.234 | 1.234 | Rechazo por precisión |
+| `1.250` · `10.000` · `10,000` | Rechazo por precisión | 1.25 · 10 · 10 | 1.25 · 10 · 10 | Rechazo por precisión |
+| `36.500` · `36,500` | Rechazo por precisión | 36.5 | 36.5 | Rechazo por precisión |
+| `1.234,50` · `1,234.50` | Rechazo por agrupación | Igual | Igual | Igual |
+| `1.234.567` · `1,234,567` | Rechazo por agrupación | Igual | Igual | Igual |
+| `36,51259999` | Rechazo por precisión | 36.51259999 | Rechazo por precisión | Rechazo por precisión |
+| `36,512599991` | Rechazo por precisión | Rechazo por precisión | Rechazo por precisión | Rechazo por precisión |
+| `-12.5` | -12.5 si el campo admite negativo | Igual | Igual | Rechazo por rango |
+| `0` | 0 | 0 | 0 | 0 |
+| Vacío | Sin dato | Sin dato | Sin dato | Sin dato |
+| `12.` · `12,` · `12+` | Edición parcial; conserva el último válido y bloquea confirmar | Igual | Igual | Igual |
 
-Regla de hoy: con coma **y** punto, el último es el decimal; con **un solo** separador, ese separador es **decimal**; con el mismo separador repetido, son miles.
+La agrupación se rechaza con **«Escribe el número sin puntos de miles»**.
+El texto permanece para corregirlo. En campos intactos el mensaje se presenta
+al confirmar (blur, Enter, Tab o submit); después del primer error, al corregir.
+Una entrada inválida borra el valor oculto anterior; una entrada incompleta
+conserva el último válido, pero la validez HTML bloquea enviar.
 
-| Se teclea | Hoy se guarda | Con esta spec, en **dinero** | Con esta spec, en **CBM y peso** |
+### 2.1 Vista inmediata en NumericInput
+
+| Entrada ficticia | Campo | Valor canónico | Vista |
 |---|---|---|---|
-| `1234,5` | 1234.5 | 1234.5 | 1234.5 |
-| `1.234,50` | 1234.5 | 1234.5 | 1234.5 |
-| `1,234.50` | 1234.5 | **Se rechaza** con mensaje: el formato es `1.234,50` | Se rechaza igual |
-| `1.234` | **1.234** (uno coma dos tres cuatro) | **Se rechaza y se pide aclarar**: «Escribe 1234 o 1.234,00 si son mil doscientos treinta y cuatro, o 1,234 si es un decimal» | 1.234 (el punto es decimal; se muestra «= 1,234»; pendiente de confirmar, §9) |
-| `1,234` · `10,000` | 1.234 · 10 | **Se rechaza y se pide aclarar** (§4.2): tres decimales no caben en dinero, y en teclados en inglés es «mil doscientos treinta y cuatro» | 1.234 · 10 (la coma es decimal) |
-| `1.234.567` | 1234567 | 1234567 | 1234567 |
-| `12.5` · `12.50` | 12.5 | 12.5: no puede ser miles, así que no hay duda; se muestra «= 12,50» (pendiente de confirmar, §9) | 12.5 |
-| `0.125` | 0.125 | Se rechaza: un punto seguido de tres cifras no se interpreta en dinero | 0.125 |
+| `0.366` | Medida, m³ | `0.366` | `= 0,366 m³` |
+| `1250` | Medida, m³ | `1250` | `= 1.250 m³` |
+| `1234.50` | Dinero | `1234.5` | `= 1.234,50` |
+| `36.51259999` | Tasa | `36.51259999` | `= 36,51259999` |
+| `3.498` | Dinero con 4 decimales, ft³ existente | `3.498` | `= 3,498` |
 
-Las tres últimas columnas muestran el valor de máquina (punto decimal); lo que ve la persona va entre «= …».
+Se conserva la precisión mínima visual declarada por el campo; el máximo de la
+vista nunca oculta los decimales aceptados del resultado. No cambia ningún
+redondeo ni cálculo de negocio. El formato de salida sigue siendo `1.234,50`.
+El texto editable al confirmar es decimal con coma **sin miles**, de modo que
+se puede volver a interpretar. Una salida agrupada no sirve como entrada humana.
 
-El campo ya muestra debajo lo que entendió («= …»); eso se conserva y pasa a escribirse en el formato nuevo.
+### 2.2 Canónico y datos anteriores
 
-**En modo tasa** (campo de tasa de cambio):
-
-| Se teclea | Hoy se guarda | Con esta spec |
-|---|---|---|
-| `36,500` | 36.5 | 36.5 (legítimo; se muestra «= 36,5000») |
-| `36.500` | 36.5 | **Se rechaza y se pide aclarar** (§4.2) |
-| `36,51259999` | 36.51259999 | 36.51259999 (8 decimales, como hoy) |
-| `36,512599991` | Se rechaza («hasta 8 decimales») | Se rechaza, igual |
-
-### 2.2 Campos que convierten a mano con `replace(",", ".")`
-
-Ejemplo real: el reporte de pago del Portal, `lib/portal/payment-report-types.ts:164`: `Number(String(raw.amount).replace(",", "."))`, seguido de la comprobación de máximo dos decimales (`:169`).
-
-| El cliente teclea | Hoy | Con esta spec |
-|---|---|---|
-| `1250,50` | 1250.50 | 1250.50 |
-| `1.250,50` | No es un número → «Escribe el monto que pagaste» | 1250.50 |
-| `1.234` | 1.234 → «El monto puede tener máximo 2 decimales» (mensaje equivocado) | Se rechaza y se pide aclarar |
-| **`1.250`** | **Se acepta como 1,25** | Se rechaza y se pide aclarar |
-| **`10.000`** | **Se acepta como 10** | Se rechaza y se pide aclarar |
-
-Los dos últimos son el caso que importa: **cualquier monto cuyos miles terminan en cero se acepta hoy mil veces menor** en este camino. Con las cifras mostradas como `1.250,00`, teclearlo así será más frecuente. El mismo patrón está en la tasa de cambio (`lib/studio/exchange-rates-types.ts:65`), el monto cotizado de un servicio (`app/studio/(app)/proveedores/actions.ts:67`), los descuentos de lista de precios (`lib/studio/price-books/price-book-types.ts:134`) y la solicitud de cotización del Portal (`lib/portal/cotizacion-request.ts:71`), entre los demás.
-
-### 2.3 `<input type="number">` crudo (46 archivos)
-
-El navegador decide cómo se ve y qué acepta según el idioma del equipo; el valor que entrega al código siempre usa punto decimal. **NV**: no se midió en cada navegador. Regla de esta spec: los campos de **dinero** dejan de usar `type="number"` crudo y pasan a `<NumericInput>` (ya es la norma de `app/studio/CLAUDE.md`); los contadores de interfaz se quedan.
+`parseNumero` y sus cuatro wrappers leen texto humano. `parseMaquina` conserva
+su gramática y límites para el valor serializado del servidor. No se cambian
+almacenamiento, montos antiguos, exportaciones ni formateadores de otras fases.
+Los consumidores ft³ y sus conversiones permanecen disponibles.
+`<input type="number">` entrega un decimal canónico según el navegador; esta
+enmienda no migra campos ni amplía fases.
 
 ## 3. Qué pasa con lo ya guardado
 
@@ -108,36 +124,34 @@ El navegador decide cómo se ve y qué acepta según el idioma del equipo; el va
 
 1. **Al mostrar:** punto de miles y coma decimal en todo el sistema, para todo número que lee una persona.
 2. **Al guardar y al enviar entre sistemas:** formato de máquina (`1234.50`). No cambia.
-3. **Al teclear dinero:** la coma es el decimal. El punto se acepta como miles bien formados cuando hay coma decimal o más de un punto (`1.234,50`, `1.234.567`). **Un separador único (punto o coma) seguido de exactamente tres cifras no se interpreta en dinero: se rechaza y se pide aclarar** (`1.234`, `1,234`, `10,000`). El sistema nunca adivina un monto. Cada tipo de campo fija su modo y su precisión (§4.2).
+3. **Al teclear:** un punto o una coma únicos son decimales en todos los modos. Agrupaciones mixtas o repetidas se rechazan con «Escribe el número sin puntos de miles». La precisión y el rango del campo siguen mandando (§4.2).
 4. **Un solo lugar para formatear y uno solo para interpretar.** Nadie formatea ni convierte a mano.
 5. **Archivos para máquinas** (CSV, Excel con celdas numéricas) llevan el número real, no texto con formato.
 
-### 4.1 Cómo queda la política NUM-01 (v1.1 → v1.2)
+### 4.1 NUM-01 v1.2, opción A aprobada el 2026-11-24
 
-NUM-01 (`docs/governance/policies/num-01.md`) es la política aprobada de campos numéricos. La regla de arriba **la enmienda en dos líneas y se apoya en una tercera**; el cambio de política lo aprueba Sam junto con la fase 1.
+`docs/governance/policies/num-01.md` registra opción A y la trazabilidad desde
+v1.1 y la propuesta v1.2 previa. Sam aprobó regla y vista previa según confirmación
+del Director `msg_c31b38185eb6`. Se actualiza solo su fila del registro maestro
+y se regeneran los derivados canónicos aplicables, sin promover componentes ajenos.
 
-| Línea de NUM-01 hoy | Qué pasa |
-|---|---|
-| `:15` «Separadores de miles/decimal se muestran según locale sin cambiar el valor almacenado.» | **Se enmienda:** se muestran con punto de miles y coma decimal. «Sin cambiar el valor almacenado» se conserva. Si el ERP en chino mantiene su formato es la decisión pendiente de §9 |
-| `:16` «Los separadores se interpretan por literal, nunca normalizando la expresión completa.» | **Se conserva y se precisa:** en un campo de dinero, un separador único (punto o coma) seguido de exactamente tres cifras no se interpreta; se rechaza y se pide aclarar. Cada tipo de campo fija su modo y su precisión (§4.2) |
-| `:25` «Error de campo conserva el texto introducido y explica el formato esperado.» | **Se conserva:** es lo que obliga al mensaje de aclaración a no borrar lo tecleado |
-| Gate («pegado con distintos separadores, locale por operando») | **Se amplía** con la tabla de §2 en los cuatro modos (dinero, tasa, porcentaje y medida) |
+FRM-01 y ERR-01 conservan su contrato: primera validación al confirmar,
+corrección en vivo posterior, texto preservado, relación `aria-describedby` y
+vista sin región viva durante la escritura.
 
-FRM-01 depende de NUM-01 y no cambia. La cápsula de gobernanza (`docs/governance/generated/`) se regenera en la misma PR.
+### 4.2 Modo y precisión por campo
 
-### 4.2 Modo y precisión por tipo de campo de entrada
+| Modo | Precisión predeterminada | Rango / signo | Separador único |
+|---|---|---|---|
+| Dinero | 2 | Según campo | Decimal; si excede precisión se rechaza |
+| Tasa | 8 | Según campo | Decimal, incluido `36.500` |
+| Medida | 4 | Según campo | Decimal, incluido `0.366` |
+| Porcentaje | 2 | 0 a 100 | Decimal; precisión especial explícita permitida |
 
-La precisión máxima manda: un valor con más decimales que el modo permite **se rechaza**, no se redondea en silencio. Por eso `1,234` en dinero (3 decimales) se rechaza por sí solo y el mensaje de aclaración le dice qué escribir.
-
-| Tipo de campo | Modo | Decimales | Un separador único + tres cifras | Fuente |
-|---|---|---|---|---|
-| **Dinero** (montos, costos, tarifas, pagos, descuentos en monto) | dinero | 2 | Se rechaza y se pide aclarar, con punto o con coma | norma de esta spec |
-| **Tasa de cambio** | tasa | **Al teclear, hasta 8** (como hoy: `exchange-rates-types.ts:70` rechaza el noveno; la base es `numeric(20,8)`). **Al mostrar, 4** (decisión 5): no es un cambio de lo que se acepta, solo de lo que se ve | La coma es decimal: `36,500` = 36,5 y es legítimo. El punto único con tres cifras (`36.500`) se rechaza y se pide aclarar | `lib/studio/exchange-rates-types.ts:65-70` |
-| **Porcentaje y descuento en %** | porcentaje | 2, entre 0 y 100 | Se rechaza (tres decimales no caben; además, un porcentaje no tiene miles) | NV: el máximo real de cada campo se fija al abrir la fase 2 |
-| **CBM** | medida | 4 | Se acepta como decimal mostrando lo entendido (decisión 2 de §9) | `lib/shared/cbm.ts` (`CBM_MAX_DECIMALS`), SDD-0667 |
-| **Peso y cantidades** | medida | las de su campo | Igual que CBM | NV: se fija campo por campo en la fase 2 |
-
-El analizador recibe el modo como argumento; no hay un modo por defecto, para que nadie lo olvide. Las pruebas de §6 se corren **por modo**.
+El modo es obligatorio. `decimales` puede declarar una precisión distinta,
+incluido 0; no se redondea silenciosamente un literal excedido. Dinero con
+4 decimales acepta tanto `3.498` como `3,498`. No se retiran campos ft³.
+`min`, `max`, signo, moneda y unidades se conservan por campo.
 
 ### 4.3 El helper compartido (propuesta)
 
@@ -213,13 +227,13 @@ Con cualquiera, la fase 3 incluye **una prueba de que el servidor (Node) y el na
 
 ## 6. Aceptación
 
-- **Ida y vuelta (propiedad):** para cualquier monto con hasta dos decimales, mostrar y volver a interpretar lo mostrado devuelve el mismo valor. Probado con valores generados, no solo con ejemplos.
+- **Ida y vuelta editable (propiedad):** para montos de hasta dos decimales, el texto decimal sin agrupación se vuelve a interpretar igual, con punto y con coma. La salida `1.234,50` conserva su formato, pero no se reinterpreta como entrada.
 - **Tabla de §2 como prueba**, caso por caso, en los cuatro modos (dinero, tasa, porcentaje y medida). Cada rechazo comprueba el mensaje y que **no se guarda nada**.
-- **Mutantes obligatorios:** aceptar `1.250` como 1,25 en modo dinero; aceptar `1,234.50`; devolver el formateador a `en-US`; aceptar `1,234` o `10,000` como decimal en modo dinero; aceptar `36.500` en modo tasa. Todos deben romper una prueba.
+- **Mutantes de opción A:** aceptar agrupaciones `1.234,50`, `1,234.50` o miles repetidos; volver a interpretar `1.250` como miles; rechazar `36.500` en tasa o `3.498` en dinero de cuatro decimales; omitir precisión; cambiar el eco a `en-US`; ocultar decimales válidos. Cada mutante debe romper una prueba propia.
 - **Contrato de entrada:** ningún archivo fuera del analizador contiene `replace(",", ".")` aplicado a un valor tecleado, ni quita puntos con `replace(/./g, "")` (el caso de `parseAmount` en `lib/studio/global-search/classify.ts:75`, que ya interpreta en formato venezolano y pasa al analizador); cuenta exacta, con la lista de excepciones justificadas (por ejemplo, lectores de archivos ajenos: `lib/studio/fx/bcv-parser.ts`, `lib/studio/partner-finance/statement-parser.ts`, `lib/studio/document-import/extract.ts`, que leen formatos de terceros y **no** se tocan).
 - **Contrato de salida:** ningún archivo fuera de los formateadores llama a `toLocaleString` o `Intl.NumberFormat` con `en-US` para un número que se muestra; lista congelada que solo baja (modelo `fechas-contract.test.ts`).
 - **CSV:** una prueba abre el archivo generado y comprueba que cada fila tiene el mismo número de columnas y que los montos se leen como números.
-- **Las 37 pruebas con `1,234.50` se actualizan al formato nuevo, no se debilitan ni se saltan.**
+- **Los fixtures de entrada humana se actualizan según §2.** Los fixtures canónicos, serializados, de datos guardados y de salida formateada se conservan. Las fases futuras mantienen su alcance separado.
 - El acceso por lector de pantalla del mensaje de aclaración cumple ERR-01: ligado al campo con `aria-describedby`, sin región viva mientras se escribe.
 
 ## 7. Riesgos
@@ -232,7 +246,7 @@ Con cualquiera, la fase 3 incluye **una prueba de que el servidor (Node) y el na
 | R4 | Documentos fiscales o contables con formato distinto antes y después | Decisión pendiente para la factura (§9) |
 | R5 | `<input type="number">` se comporta distinto por navegador | Dinero pasa a `<NumericInput>`; el resto se prueba en Chromium, Firefox y WebKit |
 | R6 | Lectores de archivos de terceros (BCV, extractos, importación de documentos) usan su propio formato | Fuera de alcance, listados como excepción en el contrato |
-| R7 | El teclado numérico escribe punto en equipos configurados en inglés: rechazar todo punto único frenaría a quien teclea `12.50` | Solo se rechaza el caso ambiguo (tres cifras tras un punto único); `12.5` y `12.50` se aceptan mostrando lo entendido. Decisión pendiente (§9) |
+| R7 | Un usuario pega miles antiguos en la entrada humana | Opción A: agrupación rechazada; cada punto o coma únicos es decimal con precisión validada y eco inmediato |
 
 ## 8. Verificación y publicación
 
@@ -248,17 +262,18 @@ Sam decide viendo: cada una se dibuja con `show_widget` (la tarjeta de un monto 
 | # | Decisión | A (propuesta) | B |
 |---|---|---|---|
 | 1 | Símbolo de moneda | `$1.234,50` | `USD 1.234,50` |
-| 2 | CBM y peso al teclear | Punto o coma decimal; se muestra lo entendido («= 1,234») | Solo coma, igual que el dinero |
+| 2 | CBM y peso al teclear (opción A elegida; §2) | Punto o coma decimal; se muestra lo entendido («= 1,234») | Solo coma, igual que el dinero |
 | 3 | ERP en chino | Formato único `1.234,50` en todos los idiomas | Cada idioma con el suyo (`12,323.50` en chino) |
 | 4 | Factura y estado de cuenta en PDF | Cambian con el resto | Conservan `1,234.50` por ser para el contador |
 | 5 | Tasa de cambio, al mostrar | `36,5000` (siempre 4 decimales) | Mínimo 2 y hasta 4 si los hay (`36,50` · `36,5125`). Teclear sigue aceptando hasta 8 en las dos |
-| 6 | Punto único con una o dos cifras (`12.5`, `12.50`) en dinero | Se acepta como decimal mostrando «= 12,50» | También se rechaza y se pide la coma |
+| 6 | Separador único al teclear (opción A elegida; §2) | Se acepta como decimal mostrando «= 12,50» | También se rechaza y se pide la coma |
 | 7 | KPI compactos de Reportes | `$1,2K` · `$1,25M` | `$1.2K` (el punto se queda en lo compacto) |
 | 8 | Número no válido (`NaN`) | Se muestra «—» | Se sigue mostrando `$0,00` |
 | 9 | CSV y Excel exportados | Número real, sin formato (`1234.50`) | Texto con formato `1.234,50` (se lee bien al ojo; Excel en español de Venezuela lo entiende, otros no) |
 | 10 | Enlace de proveedores (`app/p/[token]/`) | Conserva el idioma del proveedor (`zh-CN`, `es-ES`, `en-US`) | Formato único `1.234,50` |
 
-Las fases 1 y 2 (entrada) esperan las decisiones **2, 5 y 6**; el resto se necesitan desde la fase 3. La coma única con tres cifras en dinero (`1,234`, `10,000`) **no es decisión**: es norma (§4.2), porque con dos decimales máximo no hay una B real.
+La opción A de §2 resuelve la lectura humana de separadores para esta enmienda.
+Las demás decisiones visuales y fases mantienen sus gates; no se aprueban aquí.
 
 ## 10. Lo que esta spec no cubre
 
@@ -318,6 +333,50 @@ La entrada de datos (§2.1, §2.2 y §4.2) entra por la PR #790. Esta enmienda n
 - `lib/studio/rate-snapshots/types.ts`
 - `lib/studio/util/parse-numeric-expression.ts`
 
-Regla que fija la revisión (H1): en un campo de dinero con tres o más decimales (el precio por ft³ lleva cuatro) la coma de tres cifras es decimal (`3,498`), pero el punto sigue pidiendo aclarar (`3.498`, `1.250`): el sistema nunca adivina un monto. El valor de máquina que el campo manda oculto al servidor se lee con `parseMaquina`, que no es la regla de lo que teclea una persona.
+Regla histórica de la revisión H1 (sustituida por opción A de §2): en un campo de dinero con tres o más decimales (el precio por ft³ lleva cuatro) la coma de tres cifras es decimal (`3,498`), pero el punto sigue pidiendo aclarar (`3.498`, `1.250`): el sistema nunca adivina un monto. El valor de máquina que el campo manda oculto al servidor se lee con `parseMaquina`, que no es la regla de lo que teclea una persona.
 
-No cambia lo que se muestra en pantallas, PDF ni exportes (fase 3 en adelante) ni el color (SDD-0686). NUM-01 v1.2 queda **pendiente de confirmación de Sam**: no consta su aprobación por escrito.
+No cambia lo que se muestra en pantallas, PDF ni exportes (fase 3 en adelante) ni el color (SDD-0686). La propuesta de NUM-01 v1.2 de esta fase histórica estaba pendiente de confirmación.
+La opción A aprobada el 2026-11-24 la sustituye según §4.1.
+
+
+## 13. Allowlist de la enmienda opción A (2026-11-24)
+
+- `lib/shared/cifras.ts`
+- `lib/shared/__tests__/cifras.test.ts`
+- `app/studio/_components/ui/NumericInput.tsx`
+- `app/studio/_components/ui/NumericInput.test.tsx`
+- `__tests__/parse-numeric-expression.test.ts` (ampliación Director)
+- `lib/studio/__tests__/freight-carriers-types.test.ts` (ampliación Director)
+- `docs/specs/0687-rebrand-cifras-formato-ve/spec.md`
+- `docs/governance/policies/num-01.md` (opción A aprobada el 2026-11-24)
+- `.agents/handoffs/sdd-0687-decimales-opcion-a-20261124.md`
+
+Ampliación del Director `msg_505aa05df7cb`, solo pruebas de entradas humanas:
+
+- `lib/portal/__tests__/payment-reports.test.ts`
+- `lib/portal/__tests__/cotizacion-request.test.ts`
+- `lib/studio/__tests__/fx-rates.test.ts`
+- `lib/studio/__tests__/scorecard-types.test.ts`
+- `lib/studio/price-books/__tests__/price-books.test.ts`
+- `lib/studio/rate-snapshots/__tests__/types.test.ts`
+
+Matriz de consumidores, evidencia de pruebas, demo y ampliaciones posteriores
+del Director: handoff propio. Esta lista no autoriza fases futuras, cambios de
+código consumidor, merge, datos reales, migraciones ni deploy.
+
+Ampliación `msg_c31b38185eb6`: prueba de tracking y adopción normativa aprobada:
+
+- `app/studio/(app)/tracking/[id]/__tests__/shipment-data-panel-cifras.test.tsx`
+- `docs/governance/README.md` (solo fila NUM-01)
+- `docs/governance/generated/component-registry.json` (regeneración canónica si aplica)
+- `docs/governance/generated/governance-capsule.json` (regeneración canónica)
+
+La vista previa y regla de NUM-01 fueron aprobadas expresamente por Sam en el
+turno del Director, después de preparar la implementación; no se infiere
+aprobación del resto de decisiones/fases de esta spec.
+
+Ampliación `msg_3a65db49fba6`, tras la anotación de Quality #45412543217:
+
+- `app/studio/(app)/fiscal/_components/WithholdingDrawer.test.tsx`: entrada humana
+  sin miles, rechazo de agrupación por operando y conservación del total canónico
+  y de la salida fiscal existente. No cambia código de producto ni cálculo fiscal.
