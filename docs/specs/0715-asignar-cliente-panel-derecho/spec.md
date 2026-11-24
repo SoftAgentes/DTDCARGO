@@ -1,7 +1,7 @@
 ---
 sdd: "0715"
 title: "Asignar cliente y consultar ficha en panel derecho"
-status: draft
+status: in-progress
 author: "Codex"
 created: 2026-11-24
 updated: 2026-11-24
@@ -15,7 +15,7 @@ confidencialidad: interno
 
 ## Objetivo y estado
 
-Sam eligió panel a la derecha para consultar la ficha sin perder la posición del listado. El acceso «Asignar cliente» debe reutilizar Tracking con autorización, vista previa, motivo y confirmación. Estado draft: implementación y revisión estática en progreso; aceptación pendiente. PR preliminar #810 publicada en borrador contra la rama de #809. Instalación y pruebas esperan liberación directa de SDD-0716 según el nuevo traspaso del Director; no hay pruebas de ejecución todavía.
+Sam eligió panel a la derecha para consultar la ficha sin perder la posición del listado. El acceso «Asignar cliente» reutiliza Tracking con autorización, vista previa, motivo y confirmación. Implementación y validación local terminadas; aceptación final pendiente. PR #810 fue retargeteada a main por Dirección después de integrar #808 y #809. La cabeza de código 18df4afdf9dc063331111932e37b232cead48dd3 pasó 10 suites/163 pruebas, tipos, lint y runtime con fixtures. Main final baeb9000478f33ab8431a9b947e033cf25cdf3a7 se incorporó sin delta de archivos respecto de ese código validado. Quality pull_request se activa tras subir el cierre y marcar la PR lista; integración y publicación siguen separadas.
 
 ## Casos y flujo
 
@@ -71,15 +71,19 @@ Prefijo común `app/studio/(app)/`. El enlace normal `/studio/clientes/[markbox]
 - `clientes/ficha/[markbox]/page.tsx`: redirección a ficha canónica al recargar/abrir URL directa.
 - `embarques/layout.tsx`: children y slot ficha (sin cambiar gates de children).
 - `embarques/@ficha/default.tsx`: null.
-- `embarques/@ficha/(.)ficha-cliente/[markbox]/page.tsx`: exige explícitamente requireModuleView("clients") antes de componer la ficha, además del acceso de Embarques.
+- `embarques/@ficha/(.)ficha-cliente/[markbox]/page.tsx`: además del acceso de Embarques, exige Tracking para resolver una fila por id; sin selector exige Clients antes de componer el cuerpo de ficha.
 - `embarques/@ficha/[...rest]/page.tsx`: null al salir.
 - `embarques/ficha-cliente/[markbox]/page.tsx`: redirección canónica para acceso directo.
 
 Ambas páginas interceptadas reutilizan el mismo ClientDetailContent server y el contenedor ClientDetailPanel client. Cerrar usa router.back para recuperar lista montada y restauración de foco del DrawerShell; se debe probar el desmontaje en navegación, el foco y la interacción con las pestañas internas de la ficha antes de dar aceptación. Director confirmó las rutas y añadió page.tsx raíz nula en ambos slots. Tras el traspaso 0710 se conectaron enlaces explícitos en EmbarquesClient y ShipmentDetailDrawer. El enlace de ficha del grupo es hermano del botón del acordeón, sin controles anidados.
 
-El atajo se decide con el predicado canónico `esSinCliente`, que cubre DTD-0000 y marca vacía o espacios. DTD-0000 lleva `?embarque=<id>` al panel: ese valor solo selecciona dentro de los embarques ya leídos bajo sesión/tenant de la ficha, nunca crea una relación. Un id ajeno, vacío o ambiguo no habilita la asignación. Sin Shipping Mark vinculado se muestra «Sin ficha vinculada. Tracking abre en otra pestaña.» y «Asignar cliente» lleva a `/studio/tracking/<id-exacto>` en otra pestaña para conservar filtros, selección y posición de la lista al regresar. No se inventa DTD-0000 como relación ni se fusiona el comodín. Tracking conserva gates, motivo y confirmación existentes. Los handlers de candado, asistente, selección y rastreo incorporados de #809 no se modificaron.
+El atajo se decide con el predicado canónico `esSinCliente`, que cubre DTD-0000 y marca vacía o espacios. DTD-0000 lleva `?embarque=<id>` al panel de cliente del embarque: esa rama exige Tracking, resuelve directamente mediante `getShipmentById` bajo la sesión, comprueba id exacto, tenant activo y deleted_at, y relee el Shipping Mark actual. No consulta ClientDetailContent ni depende del listado de 200 embarques o de una ficha comodín. Si ya tiene cliente, informa sin ofrecer transferirlo; si no es visible, está eliminado, es ajeno o el selector es ambiguo, no revela código ni habilita escritura. El formulario existente conserva canSpecial y privacidad CN; RPC y acciones repiten sus candados.
 
-La ampliación para DDP 64 añade casos de dos filas reales del mismo grupo, cada una con su propio destino, para DTD-0000, marca vacía y espacios, y el contraste de id ajeno/selección exclusiva en la ficha. Pruebas de ejecución pendientes.
+Sin `?embarque`, la ruta continúa abriendo la ficha completa en panel tras el gate Clients. Recargar un panel de asignación lleva al Tracking exacto (gate propio antes de redirigir), en vez de inventar una ficha DTD-0000. Sin Shipping Mark vinculado, la fila muestra «Sin ficha vinculada. Tracking abre en otra pestaña.» y «Asignar cliente» lleva directamente a `/studio/tracking/<id-exacto>` en otra pestaña para conservar filtros, selección y posición de la lista al regresar. No se inventa DTD-0000 como relación ni se fusiona el comodín. Los handlers de candado, asistente, selección y rastreo incorporados de #809 no se modificaron.
+
+La ampliación para DDP 64 cubre dos filas reales del mismo grupo, cada una con su propio destino, para DTD-0000, marca vacía y espacios, y el contraste de id ajeno/selección exclusiva. Casos focales y recorrido con datos ficticios ejecutados; no se usaron filas reales de negocio.
+
+Hallazgo del Director (`msg_8be4540dc6f1`): la lista de ficha está limitada a los 200 más recientes. La corrección de la rama por id exacto agrega pruebas independientes para seleccionado fuera de esos 200 con ficha comodín inexistente, tenant ajeno, ausencia de tenant, id no visible/eliminado/incongruente, Tracking denegado, capacidad/privacidad, estado ya asignado, dos ids exclusivos y recarga hacia Tracking. El límite general y las queries compartidas no se modifican. La corrección está en `18df4afdf`: pasó el lote inicial de 3 suites/97 pruebas y el definitivo de 10 suites/163 pruebas, tipos y lint. Runtime final verificó filas exclusivas, antiguo 201 sin ficha, modal real sin escritura, retorno con filtro/selección/foco, móvil y recarga a Tracking exacto. Los 153 verdes anteriores al hallazgo no se usaron para acreditar esta corrección.
 
 ## Evidencia del diagnóstico (base reservada)
 
@@ -116,7 +120,7 @@ Impacto documental: esta spec, índice generado y handoff propio. No se conviert
 - Task: `task_75e843282aed`; Dispatch: `ctx_59ec39c37538`.
 - HEAD inicial verificado igual a base reservada; PR preliminar: https://github.com/SoftAgentes/DTDCARGO/pull/810, en borrador.
 - Implementación preservada en `50c9078fd`; merge normal de #809 en `1a39a12eb`, sin conflictos y con el segundo padre exacto `5e79383bdd972d2863d194df658beffa9cd05281`.
-- Base de PR: `SoftAgentes/sdd-0710-candado-embarques-20261124` (#809 abierta al recuperar Orca). Dependencia #808 incorporada con autorización nominal del Director (`msg_cb8011bee2ef`) al SHA exacto `9e27b63d419450ca3ab93a4138df209de23b5e84`, mediante merge normal `8254197ede477aed9e7ae2016b0af94de6f1be94`, sin conflictos. La base final y el delta exclusivo de #810 se revisarán después de integrar primero #808 y #809.
+- Base histórica del borrador: `SoftAgentes/sdd-0710-candado-embarques-20261124`. Dependencia #808 incorporada con autorización nominal del Director (`msg_cb8011bee2ef`) al SHA exacto `9e27b63d419450ca3ab93a4138df209de23b5e84`, mediante merge normal `8254197ede477aed9e7ae2016b0af94de6f1be94`, sin conflictos. Dirección integró ambas dependencias y retargeteó #810 a main; base final incorporada `baeb9000478f33ab8431a9b947e033cf25cdf3a7`.
 - Head de producto publicado al abrir #810: `af120dbfa0fede792bc85a52e8ae9c83b8e7a178`, incluye conexión de Embarques en `66291e030` y atajo canónico de marcas vacías en `af120dbfa`. Los checks se activarán al pasar a ready tras la validación; el borrador no constituye entrega terminada.
 
 ### Ampliación exacta aprobada para slots y pruebas
@@ -142,15 +146,18 @@ Impacto documental: esta spec, índice generado y handoff propio. No se conviert
 
 El panel de asignación se reutiliza a través de ClienteDelEmbarque dentro de ClientDetailContent solo para shipments reales sin cliente. Repite gate de Tracking, privacidad CN y canSpecial; las acciones conservan sus verificaciones server, previa, motivo y confirmación. El listado ofrece acceso informativo y no decide elegibilidad por cero ni por notas.
 
-## Revisión estática y validaciones parciales
+## Validación y límites
 
-- PASÓ: guard/owner, `git diff --check`, índice documental, cápsula de gobernanza (29 políticas), numeración SDD sin nuevas colisiones. Las colisiones históricas de migraciones reportadas por el gate quedan intactas.
-- FALLÓ: validador derivado del plugin (`policy-registry.json está desactualizado`); no modifica ni invalida las políticas fuente del repo. Fuera del slice.
-- NO DISPONIBLE: `components:check` necesita `ajv`; este hijo sigue sin instalación.
-- NO EJECUTADO: suites focales, tipos, navegación Next real, viewport, build/verify. Las pruebas escritas no equivalen a resultados.
-- Revisión read-only de navegación: interceptores limitados a URLs explícitas del módulo, canónica sin interceptor, slot raíz/catch-all/default nulos, retorno por historial y enlace al listado del origen, pestañas con replaceState sin añadir entrada al historial. Back/forward, refresh y restauración efectiva de foco/scroll requieren runtime.
-- Datos: la página del listado elimina `notes` antes de cruzar la frontera server/client; `ClientListRow` usa Omit y booleano. El id para reasignar proviene de listShipmentsDeLaFicha bajo sesión, tenant, códigos y no eliminados; no se parsean notas ni se consulta producción.
-- Gobernanza del slice: CMP-01/BTN-01, cumplimiento estático por reuso del shell y acción existentes y enlace semántico en la identidad. MP-01/AUD-01/AUD-02, sin modificación del contrato de mutación y auditoría; runtime pendiente. A11Y-01/ERR-01/LOD-01, cumplimiento parcial: shell, carga anunciada por Suspense y recuperación local presentes; pruebas de ejecución pendientes. Sin excepciones ni promociones de componentes.
+- PASÓ: instalación congelada, guard/owner, diff, índice documental, cápsula de gobernanza de 29 políticas, componentes y numeración sin colisiones nuevas.
+- PASÓ: 10 suites focales y 163 pruebas con maxWorkers=1 sobre el código de 18df4afdf; pnpm typecheck y ESLint del delta. Comandos y rutas reproducibles en el handoff.
+- PASÓ con fixtures en Next 16.4.6: listado/panel, filtro/selección/scroll/foco, atrás/adelante, accesos de Configuración, recarga canónica, enlace canónico, limpieza de slot raíz, error/404 local, geometría de escritorio y 390 px móvil.
+- PASÓ con fixtures en Next: dos filas exclusivas, seleccionado antiguo 201 con ficha comodín ausente, apertura de ClienteDelEmbarque/ReassignClientPanel reales sin escribir, Escape de modal superior, retorno con filtro/selección/foco y recarga al Tracking exacto. Marca vacía abre ambos Tracking exactos en pestañas aparte conservando lista.
+- NO EJECUTADO localmente: build/pnpm verify global; Director delegó a Quality. La PR ahora tiene base main y ready dispara el evento pull_request sobre la cabeza final. Estado/ID/SHA vigentes se registran en PR y recibo de entrega.
+- FALLÓ fuera del slice: validador derivado del plugin instalado, por policy-registry.json desactualizado; las políticas/cápsula canónicas del repo pasaron. No se editó el plugin.
+- NO EJECUTADO: producción, filas reales, RLS contra DB real o aceptación humana. El arnés usa consultas/gates ficticios y escrituras bloqueadas; la ficha normal está doblada en el arnés y su composición real se cubre con Vitest.
+- Gobernanza: cumplimiento estático/focal de CMP-01/BTN-01/A11Y-01 por shell existente, enlaces semánticos y mínimo táctil de 44 px. Medición Asignar cliente: aproximadamente 107.9 × 44 px. MP/AUD conservan acciones/RPC/motivo/auditoría existentes. Sin excepciones, políticas nuevas ni promociones de componentes.
+- Artefactos locales en %TEMP%/sdd-0715-routing: scripts y capturas de escritorio/móvil. Se corrigieron fallos del arnés (estilos/providers/sincronización), no se presentan como defectos de producto. No confundir la prueba de routing con observación integral de datos de negocio.
+- La integración final de main se cotejó contra el código validado sin archivos cambiados; el cierre posterior solo actualiza spec, índice y handoff.
 
 ### Recuperación local del slot autorizada
 

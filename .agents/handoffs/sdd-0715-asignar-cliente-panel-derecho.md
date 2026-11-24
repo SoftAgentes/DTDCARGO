@@ -1,64 +1,99 @@
-# Handoff SDD-0715
+# Handoff SDD-0715 — ficha lateral y asignación por embarque
 
 ## OBJETIVO ORIGINAL
-Asignar cliente y abrir ficha en panel derecho conservando el listado, conforme a la spec propia.
+Acceso Asignar cliente en filas pendientes y desde Clientes; ficha autorizada en panel derecho conservando contexto. Reutilizar Tracking (previa, motivo y confirmación) y DrawerShell. Resumen debe permitir encontrar identidad y asesor sin duplicar formularios.
+
+## IDENTIDAD Y AISLAMIENTO
+- Owner: codex-sdd-0715-panel-cliente-20261124.
+- Worker: orca_session_id:4e58e02e-15cc-4709-b887-11de5ebd0b45.
+- Director: orca_session_id:14b98827-b1e5-41f3-aee0-c72c837f96fc.
+- Task task_75e843282aed; Dispatch ctx_59ec39c37538.
+- Rama SoftAgentes/sdd-0715-asignar-cliente-panel-derecho; único hijo escritor.
+- Base reservada dd842dfd87af930bd3a21e10e7a7f79721503bf5, sobre main inicial 8580490f8d95872a407ab83ab9acb6b1b265a451.
+- Claim propio verificado durante edición; se libera después del último commit y antes de worker_done. No se elimina rama ni worktree.
 
 ## COMPLETADO
-Diagnóstico local y spec con casos, allowlist, evidencia, privacidad y aceptación. Guard y claim adquiridos con owner `codex-sdd-0715-panel-cliente-20261124`. Rama `SoftAgentes/sdd-0715-asignar-cliente-panel-derecho`; base y HEAD inicial `dd842dfd87af930bd3a21e10e7a7f79721503bf5`. Sesión `orca_session_id:4e58e02e-15cc-4709-b887-11de5ebd0b45`, Director `orca_session_id:14b98827-b1e5-41f3-aee0-c72c837f96fc`, Task `task_75e843282aed`, Dispatch `ctx_59ec39c37538`.
-
-Implementación local sin ejecutar: ficha server extraída, canónica completa intacta, rutas explícitas de panel para Clientes/Embarques, slots raíz/catch-all/default que limpian estado, gate server antes del cuerpo, shell compartido y Suspense con carga anunciada. Clientes usa enlace semántico en la identidad, conserva query y solicita navegación sin scroll. Ya no envía notes en las props: solo hasNote. El acceso de asignación exige Tracking, capacidad especial y privacidad CN; el panel reutiliza ClienteDelEmbarque/ReassignClientPanel para ids de embarques reales, conservando previa, motivo y confirmación. No se crea relación desde notas ni conteos.
-
-Pruebas escritas: panel-routes (orden de autorización, slots nulos, fallback directo, layouts, minimización de notes y permiso del listado); ClientDetailPanel (Escape, foco, volver, cerrar y fondo); ClientsClient (enlace con filtros, indicador, permiso y sin nota); ficha-cliente-page ampliada (regresión canónica y asignación solo con relación real y gates). No se declaran verdes hasta ejecutarlas.
-
-Ampliación de identidad/asesor recibida del Director: Resumen ahora ofrece accesos a «Verificar cédula/RIF en Configuración» bajo la condición existente de documento/foto/portal y «Asignar asesor en Configuración». El texto señala dónde se ejecuta la acción. Configuración prioriza IdentityVerificationCard y AdvisorAssignCard, conservando todas las demás, sin duplicar formularios ni alterar props o Server Actions. Se añadieron casos en ficha-cliente-page para ficha completa y panel y se preserva Configuración en el fallback directo del panel, con casos en panel-routes. Composición sigue siendo propiedad de este Worker; FichaPestanas.tsx y sus pruebas no se tocaron, son del hijo SDD-0669.
+- Ficha server extraída a ClientDetailContent conservando consultas, condiciones, vistas y permisos; acceso canónico completo.
+- Slots de panel acotados a URLs explícitas de Clientes/Embarques. Root/default/catch-all nulos, error y no disponible locales; no se interceptan globalmente enlaces canónicos.
+- Listado Clientes envía hasNote en lugar de notes. Enlace nativo en identidad y foco del disparador. No se añaden datos personales al listado.
+- Resumen enlaza a verificación de cédula/RIF bajo condición existente de documento/foto/portal y a asesor. Configuración prioriza esas tarjetas; una sola instancia de cada formulario y las demás tarjetas conservadas.
+- Filas DTD-0000 enlazan id exacto. Esa rama exige Shipments/Tracking antes de getShipmentById de sesión, comprueba id/tenant activo/deleted_at y relee el cliente actual. No carga ficha comodín ni lista de 200; un embarque ya asignado informa sin transferirlo. No se alteró el límite general.
+- Capacidad especial y privacidad CN conservadas mediante ClienteDelEmbarque/ReassignClientPanel, con RPC y acciones existentes. Sin cambios de acciones, tipos compartidos, queries compartidas, RLS, política o migraciones.
+- Marca vacía/espacios según esSinCliente: acceso al Tracking exacto en otra pestaña con texto explícito, conservando lista. Sin relación inventada ni fusión del comodín.
+- Candado, asistente, selección, código y rastreo de #809 preservados. Formularios de asignación no reciben notas ni nombres del resultado de detalle.
+- Accesos nuevos con mínimo táctil 44 px; medido Asignar cliente en móvil: aproximadamente 107.9 × 44 px.
 
 ## VALIDACIÓN
-| Comprobación | Estado | Límite |
+Código validado: 18df4afdf9dc063331111932e37b232cead48dd3. Main final baeb9000478f33ab8431a9b947e033cf25cdf3a7 se incorporó por merge normal a5fa52a181ad2474c0a1e9c477d8ec55e3757911; git diff entre el código validado y ese HEAD no mostró archivos cambiados. El cierre posterior solo actualiza documentación e índice.
+
+| Comprobación | Estado | Evidencia y límite |
 |---|---|---|
-| Guard/owner y diff --check | PASÓ | Solo revisión local |
-| docs:index / docs:check | PASÓ | Índice regenerado; repetir tras cierre documental |
+| pnpm install --frozen-lockfile | PASÓ | 813 paquetes reutilizados; sin copiar env |
+| Lote focal definitivo | PASÓ | 10 suites, 163 pruebas, maxWorkers=1, 84.06 s; incluye casos nuevos del tope |
+| pnpm typecheck | PASÓ | Luego de corregir fixtures antiguos al contrato ClientListRow |
+| ESLint del delta | PASÓ | Invocado con node node_modules/eslint/bin/eslint.js y rutas explícitas |
+| docs:index / docs:check | PASÓ | Cierre sincronizado con 696 specs |
 | governance:check | PASÓ | Cápsula de 29 políticas vigente |
-| sdd:check | PASÓ | Conserva choques históricos de migraciones; sin colisión nueva |
-| Validador de plugin governance-check | FALLÓ | policy-registry.json derivado desactualizado; no editar caché ni política |
-| components:check | NO DISPONIBLE | Falta ajv, node_modules todavía ausente |
-| Suites focales / tipos | NO EJECUTADO | Turno de instalación pendiente |
-| Runtime Next, back/forward, refresh, escritorio/móvil | NO EJECUTADO | La inspección de rutas no demuestra navegación real |
-| Build / verify local | NO EJECUTADO | Director ordenó esperar turno; Quality de PR cubrirá gate global cuando corresponda |
+| components:check | PASÓ | 8 fuentes, reproducible, sin rutas rotas |
+| sdd:check | PASÓ | Sin colisiones nuevas; excepciones históricas intactas |
+| diff staged / guard owner | PASÓ | Commits selectivos y delta exclusivo frente a main dentro de allowlist |
+| Next real, rutas de ficha | PASÓ con fixtures | Listas, panel y pestañas reales; cuerpo de ficha y gates doblados |
+| Next real, fila exacta | PASÓ con fixtures | Consulta de detalle doblada; ClienteDelEmbarque/ReassignClientPanel reales |
+| build / pnpm verify local | NO EJECUTADO | Director delega el gate global a Quality; no se aplicó DB |
+| Quality pull_request de #810 | PENDIENTE DE ACTIVAR | PR retarget main por Director; marcar ready después de subir cierre |
+| Producción / RLS real / aceptación humana | NO EJECUTADO | No están autorizados en este encargo |
 
-No se instalaron dependencias, no se copiaron env ni se usaron servicios/datos reales. Un primer comando de componentes usó un nombre de script incorrecto; se corrigió a validate-component-registry.mjs, que confirmó la dependencia faltante.
+Suites ejecutadas con node node_modules/vitest/vitest.mjs run y --maxWorkers=1:
+- clientes/__tests__/panel-routes.test.tsx
+- clientes/__tests__/ficha-cliente-page.test.tsx
+- clientes/__tests__/ficha-pestanas.test.tsx
+- clientes/_components/__tests__/ClientDetailPanel.test.tsx
+- clientes/_components/__tests__/ClientsClient.test.tsx
+- clientes/_components/ClientsClient.adjuntos.test.tsx
+- clientes/_components/ClientsClient.contador.test.tsx
+- embarques/_components/__tests__/EmbarquesClient.abrir.test.tsx
+- embarques/_components/__tests__/EmbarquesClient.borrado.test.tsx
+- tracking/[id]/_components/__tests__/ReassignClientPanel.test.tsx
+Todas las rutas anteriores están bajo app/studio/(app)/.
 
-UI-CHECK read-only aplicado según .claude/commands/ui-check.md: hallazgo alto de recuperación local atendido estáticamente con los cuatro boundaries autorizados; falta ejecución del routing. Prioridad media, medir target/texto de «Asignar cliente» y verificar reflow de la ficha densa en móvil/escritorio, foco/scroll real, zoom y temas en runtime. Correcto estáticamente: tokens existentes, DrawerShell compartido, enlace de identidad sin controles anidados, notas minimizadas, carga anunciada y sin estilos ni fuentes nuevas. Veredicto parcial: ejecutar pruebas antes de aceptación; no se reporta GUI observada.
+Regresiones nuevas: seleccionado fuera de 200 y ficha comodín ausente, Tracking denegado antes de lectura, id no visible/eliminado/incongruente, tenant ajeno/sin tenant, capacidad/privacidad, cliente ya asignado y dos filas exclusivas. Los 153 verdes anteriores al hallazgo no se usaron para acreditar la corrección.
 
-## COMMITS
-- `50c9078fd`: preservó implementación local con validación estática y pruebas pendientes antes del merge.
-- `1a39a12eb`: merge normal de #809, segundo padre exacto `5e79383bdd972d2863d194df658beffa9cd05281`; sin conflictos.
-- `66291e030`: enlaces de Embarques y selección de shipment dentro del panel, con casos focales y documentación de dependencia.
-- `af120dbfa`: atajo canónico también para marca vacía/espacios, Tracking exacto en otra pestaña y casos de dos filas por grupo. Head de producto al abrir PR: `af120dbfa0fede792bc85a52e8ae9c83b8e7a178`.
-- `8254197ed`: merge normal autorizado de #808 al SHA exacto `9e27b63d419450ca3ab93a4138df209de23b5e84`, sin conflictos. Las dos dependencias están incorporadas; Director revisará base final y delta exclusivo después de integrarlas.
-- El gate staged detectó líneas vacías al final de archivos nuevos; se corrigieron antes del primer commit.
+### Runtime y UI-CHECK
+Arnés fuera del repo: %TEMP%/sdd-0715-routing, Next 16.4.6, puerto 3175. Usa rutas copiadas del árbol, ClientsClient/EmbarquesClient/DrawerShell/FichaPestanas reales, fuente local de datos ficticios y escrituras bloqueadas. El cuerpo normal de ficha está doblado; sus condiciones y tarjetas reales se cubren en Vitest, no se presenta el arnés como lectura de negocio ni como RLS real.
+
+Observado en el navegador Orca:
+- Clientes conserva búsqueda, query, selección, scroll y foco al volver; adelante reabre la pestaña seleccionada.
+- Accesos de Configuración funcionan con #808; recarga resuelve ficha canónica y conserva pestaña válida; enlace canónico abre página completa.
+- Root limpia slot, error/404 se recuperan dentro del panel sin detalle interno.
+- Geometría del panel en escritorio y 390 px móvil; capturas inspeccionadas.
+- Dos filas pendientes abren su id exclusivo. Las dos sin marca abren sus Tracking exactos aparte y conservan la lista.
+- Con ficha DTD-0000 deliberadamente ausente, el antiguo 201 abre la acción real por id, el primer paso Cliente nuevo y el modal superior. Escape cierra solo ese modal. Regreso conserva selección, filtro real de Embarques y foco. Recargar va al Tracking exacto.
+- No se seleccionó un destinatario ni se confirmó escritura en navegador. Previa/motivo/confirmación se probaron en la suite reutilizada de Tracking.
+
+Scripts y capturas locales: build.mjs, browser-check.ps1, exact-row-check.ps1, exact-row-tail.ps1; clientes-panel-desktop.png, clientes-panel-mobile.png, embarques-panel-desktop.png, embarques-panel-mobile.png y asignacion-exacta-mobile.png en ese directorio.
+El arnés se corrigió por estilos mal ubicados, ToastProvider ausente y sincronización inicial tras HMR; esos fallos de arnés no se reportan como defectos del producto. La validación final se hizo con providers adecuados y consultas ficticias.
+UI-CHECK propio: shell canónico, fuentes/tokens, enlaces sin controles anidados, foco/cierre y objetivos táctiles revisados. No equivale a revisión independiente ni a observación integral de la ficha empresarial. Zoom nativo #809: QA externo informó aprobación en %TEMP%/dtd-0710-qa-5e79383/zoom-nativo; no se cuenta como prueba propia de #810.
+
+## COMMITS Y DEPENDENCIAS
+- 50c9078fd: implementación inicial preservada antes de merge.
+- 1a39a12eb: merge exacto #809 5e79383bdd972d2863d194df658beffa9cd05281, sin conflictos.
+- 66291e030 / af120dbfa: enlaces por fila y marca vacía.
+- 8254197ed: merge exacto #808 9e27b63d419450ca3ab93a4138df209de23b5e84, autorizado, sin conflictos.
+- 4b7cddafd: fixtures sin notes.
+- 908cf0b99: merge #809 actualizado f4b7279b00f81c8afe79c97c9ad1f39a652b8373.
+- 0046eb10e: mínimo táctil.
+- 18df4afdf: acceso directo por ID sin ficha ni tope de 200.
+- a5fa52a181ad2474c0a1e9c477d8ec55e3757911: merge main final baeb9000478f33ab8431a9b947e033cf25cdf3a7 tras integración de #808 y #809. Sin delta de archivos frente al código validado.
+- El siguiente commit cierra documentación. SHA final y corrida Quality se reportan en PR/recibo Orca, sin insertar un hash autorreferente en este archivo.
 
 ## PR / BRANCH
-PR preliminar https://github.com/SoftAgentes/DTDCARGO/pull/810, en borrador, base `SoftAgentes/sdd-0710-candado-embarques-20261124`, publicada sin integración ni despliegue. El borrador documenta pruebas NO EJECUTADAS y dependencia #808; no se marca entrega completa ni se activa ready hasta la validación correspondiente. La entrega final exige checks activos.
-
-Director liberó EmbarquesClient mediante `msg_313ddae0d85c`: #809 con head `5e79383bdd972d2863d194df658beffa9cd05281`, rama base `SoftAgentes/sdd-0710-candado-embarques-20261124`. Remoto y SHA cotejados; merge-base de este hijo y esa cabeza: `8580490f8d95872a407ab83ab9acb6b1b265a451`, igual al main de la asignación. Merge normal completado sin conflictos, sin rebase/force ni tocar otro worktree. Tras reinicio de Orca, se verificó que ambos commits y seis archivos de edición posterior persistieron, sin instalación ni PR previa. #808 sigue siendo dependencia de pestañas, head observado `9e27b63d419450ca3ab93a4138df209de23b5e84`; permanece sin incorporar. PC exclusivamente para m³ según último mensaje: sin instalación, build, verify ni pruebas pesadas hasta nuevo turno.
+https://github.com/SoftAgentes/DTDCARGO/pull/810, rama propia; Director retargeteó a main después de integrar #809. Base final incorporada: baeb9000478f33ab8431a9b947e033cf25cdf3a7. Subir cierre y marcar lista para que dispare Quality pull_request sobre la cabeza exacta. No se usa CI de las dependencias como CI de #810.
 
 ## PENDIENTES DE ESTA TAREA
-Director autorizó extracción y rutas exactas de slots, incluyendo page raíz nula en ambos. Esperar turno de PC después de m³ para instalación congelada, suites focales, tipos y routing ficticio. Verificar navegación atrás/adelante/cierre/refresh/volver por enlace, error/404 local y estados en móvil/escritorio. EmbarquesClient ya liberado y conectado al panel solo mediante enlaces/indicador: no se cambiaron los handlers de candado/asistente/selección de #809. La fila DTD-0000 envía el id real, que se contrasta con los embarques autorizados de la ficha; sin marca se informa y se mantiene el acceso a Tracking. Tests escritos en las rutas focales ya aprobadas, sin ejecutar. Publicar PR draft contra rama #809 y registrar head/base. Cierre definitivo pendiente: pruebas, revisión, handoff final y liberación del claim propio. Tarea y claim activos durante espera, sin worker_done.
-
-La ampliación de boundaries fue solicitada mediante `msg_8bd45f20f5e8` y autorizada en la respuesta `msg_9601e31d5319`: implementados error.tsx/not-found.tsx de ambos @ficha, con panel y aviso genéricos, reset solo en error, cierre y origen conservados, sin representar detalle interno ni datos. Casos añadidos en ClientDetailPanel.test.tsx, todavía NO EJECUTADOS. Para los enlaces a Configuración, verificar navegación real con el cambio de FichaPestanas del hijo SDD-0669 cuando Director coordine el traspaso; no copiarlo de forma autónoma.
-
-Ampliación DDP 64 (`msg_024f29816795`): EmbarquesClient usa esSinCliente canónico también para marca vacía/espacios. Cada fila sin ficha tiene atajo al Tracking del id exacto en otra pestaña, declarado en texto accesible/visible para conservar lista/filtros/selección al regresar. DTD-0000 conserva panel con selector exacto contrastado contra las lecturas autorizadas. Dos filas del mismo grupo tienen casos de destino exclusivo en panel-routes; pendientes de ejecución.
-
-Traspaso de turnos (`msg_19c4be2dd2e2`): tomar turno fuerte automáticamente al recibir liberación directa de 0716, sin volver a preguntar. Al liberarlo, avisar al Director y enviar a `dispatch:ctx_74f0cbdf1b68` que puede correr QA visual de #809. La entrega exige PR con checks activos; el borrador preliminar se marcará ready al completar la validación correspondiente. No confundir borrador publicado con entrega terminada.
-
-Liberación directa recibida de 0716 mediante `msg_8c58f6bfbab3`: turno tomado. Instalación `pnpm install --frozen-lockfile` PASÓ (813 paquetes reutilizados, sin copiar env). Suites focales iniciadas con maxWorkers=1; resultados pendientes de registrar. No se ejecuta instalación en otros hijos ni se toca producción.
-
-Primer corte de validación: 8 suites y 145 pruebas PASARON con maxWorkers=1 (incluye #808, #809 y ReassignClientPanel). Typecheck detectó 4 asignaciones de fixtures antiguos que aún enviaban Client con notes a ClientsClient; se adaptaron ClientsClient.adjuntos.test.tsx y ClientsClient.contador.test.tsx al contrato ClientListRow sin debilitarlo. Typecheck repetido PASÓ, ESLint del delta PASÓ y esas 2 suites adicionales PASARON (8 pruebas). La pasada definitiva seguirá al merge actualizado de #809 f4b7279b00f81c8afe79c97c9ad1f39a652b8373, solicitado por Director.
-
-Arnés Next temporal fuera del repo: `%TEMP%/sdd-0715-routing`, sin env ni DB real, puerto 3175; copia layouts/slots y páginas de routing y reutiliza ClientsClient/EmbarquesClient/DrawerShell/FichaPestanas reales, con cuerpo de ficha y autorización ficticios. No acredita RLS ni toda la ficha visual real. Ya observados: conservar filtros/selección/scroll/foco, atrás/adelante, recarga canónica con pestaña, error/404 local, geometría móvil. Evidencia final pendiente de completar y registrar; servidor temporal aún propio y se detendrá antes de liberar el turno.
+Quality final, revisión independiente y tren de integración a cargo del Director. SDD permanece in-progress hasta aceptación completa; no se declara CI verde, aprobación humana, merge ni publicación de #810 antes de observarlos. No hay migraciones ni interruptores de producción que activar.
 
 ## FUERA DE ALCANCE DETECTADO
-Registro derivado del plugin de gobernanza desactualizado frente al repo vigente. No se arregla ni se convierte en política dentro de este encargo. Sin otros arreglos ajenos incluidos.
+El registro derivado del plugin de gobernanza instalado está desactualizado; su validador falló, mientras cápsula y políticas del repo están vigentes. No se modificó caché/plugin ni se elevó a regla. Ninguna reparación ajena incluida.
 
 ## HANDOFF AL DIRECTOR
-Impacto documental: spec propia con allowlist exacta y evidencia, índice generado, este handoff. Sin cambios de política, migraciones, acciones ni consultas compartidas; sin producción. La suite canónica se amplió como prueba focal de la extracción y el flujo autorizado. La comprobación de tenant/RLS se limita al contrato de consulta existente; no se ejecutó SQL ni base real. Director revisa e integra, sin merge/deploy de este Worker. Próximo paso dependiente del turno: instalar, ejecutar suites y tipos, corregir lo que demuestren y comprobar routing ficticio; no basta inspección estática para aceptar Next.
+Impacto documental: spec propia, índice generado y este handoff. Código y pruebas listos para revisión del árbol final; distinguir pruebas focales, runtime ficticio y Quality alojado. El último escritor libera solo su claim después del cierre; conserva rama/worktree. Servidor temporal detenido y puerto 3175 comprobado sin listener; sin pruebas pesadas propias en ejecución. Dirección recibió la liberación definitiva como msg_d1198aa97c55. El aviso a dispatch:ctx_74f0cbdf1b68 fue rechazado sin efectos porque su despacho vigente ctx_d73b93c31621 solo acepta trabajo del coordinador; se pidió relay al Director mediante msg_4bc924c29e10. No se iniciaron helpers ni se rodeó la jerarquía de Orca.
