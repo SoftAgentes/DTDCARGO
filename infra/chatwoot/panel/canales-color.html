@@ -1,0 +1,31 @@
+<!--
+  DTD Cargo · Íconos de canal con color en el panel de Chatwoot (pedido de Sam, 2026-11-23,
+  variante B: «Va la B: el portal en azul DTD»).
+
+  Va en Chatwoot › Super Admin › Settings › «Dashboard Scripts» (`DASHBOARD_SCRIPTS`), DEBAJO
+  de `dashboard-scripts.html` (el campo es uno solo; ver docs/runbooks/chatwoot-agentes.md §4).
+  Chatwoot lo pone al final del <body> de cada página del panel.
+
+  Qué hace: solo pinta. Los íconos de canal de Chatwoot 4.20.1 son máscaras con
+  `background-color: currentColor` (clases `i-woot-*`), así que basta con darles `color`.
+  - WhatsApp verde, Messenger azul e Instagram rosado: colores oficiales (BRAND.md,
+    excepción de logos de canal, SDD-0648 D1), en todos los lugares donde Chatwoot usa
+    esos íconos de línea.
+  - «Conversaciones del portal» (canal API, bandeja 10 de la cuenta 1) en el azul de
+    acción de DTD (`--accion`: #1F4FA8 en claro, #7FAAF0 en oscuro), solo en su fila del
+    menú lateral. El «Archivo Kommo» es también canal API y queda en gris.
+  - Correo y el resto quedan como los pinta Chatwoot.
+  Sin scripts, sin datos y sin red. Si Chatwoot cambia las clases o la ruta, los íconos
+  vuelven a gris; no se rompe nada.
+
+  Cargarlo en producción pide el OK nominal de Sam. Lo prueba
+  `lib/studio/chatwoot/__tests__/canales-color.test.ts`, que lee este archivo.
+-->
+<style id="dtd-canales-color">
+  .i-woot-whatsapp { color: #25d366; }
+  .i-woot-messenger { color: #0866ff; }
+  .i-woot-instagram { color: #e4405f; }
+  body.dark .i-woot-messenger { color: #4d8fff; }
+  a[href$="/inbox/10"] .i-woot-api { color: #1f4fa8; }
+  body.dark a[href$="/inbox/10"] .i-woot-api { color: #7faaf0; }
+</style>

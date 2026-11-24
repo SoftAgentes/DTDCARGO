@@ -12,6 +12,7 @@
 
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth/session";
+import { configuracionPractica } from "@/lib/studio/practica/config";
 import { createClient } from "@/lib/db/server";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { countActiveAlerts } from "@/lib/studio/expense-alerts-queries";
@@ -124,7 +125,9 @@ export default async function StudioAppLayout({
     userTenantRegion: tenantLink?.region ?? null,
   });
 
+  const practica = configuracionPractica();
   const profileInitial = {
+    origenPractica: role && practica?.modo === "origen" ? practica.prueba : undefined,
     email: user.email ?? "",
     firstName: profile?.first_name ?? null,
     lastName: profile?.last_name ?? null,

@@ -39,6 +39,8 @@ vi.mock("@/lib/studio/expense-alerts-queries", () => ({
 type Insert = { tabla: string; valores: Record<string, unknown> };
 let rpcs: string[] = [];
 let inserts: Insert[] = [];
+let actualizaciones: Insert[] = [];
+let compras: { id: string; sales_order_id: string; invoice_id: null }[] = [];
 /** El código que asigna el trigger de la 0469 en el escenario. */
 let codigoDeLaBase = "WR-2026-0007";
 
@@ -51,6 +53,7 @@ function columnas(fila: Record<string, unknown>, pedidas: string | null) {
 }
 
 function respuesta(tabla: string, op: string, unica: boolean, pedidas: string | null) {
+  if (tabla === "prealertas" && !unica) return { data: compras, error: null };
   if (tabla === "user_tenants") return { data: columnas({ tenant_id: "tenant-1" }, pedidas), error: null };
   if (tabla === "warehouse_receipts_cn" && op === "insert") {
     return { data: columnas({ id: "rec-1", receipt_code: codigoDeLaBase }, pedidas), error: null };
@@ -74,7 +77,8 @@ function cadena(tabla: string) {
     for (const v of Array.isArray(valores) ? valores : [valores]) inserts.push({ tabla, valores: { ...v } });
     return c;
   };
-  c.update = () => {
+  c.update = (valores: Record<string, unknown>) => {
+    actualizaciones.push({ tabla, valores });
     op = "update";
     return c;
   };
@@ -125,8 +129,36 @@ const recepcion = () => inserts.find((i) => i.tabla === "warehouse_receipts_cn")
 beforeEach(() => {
   rpcs = [];
   inserts = [];
+  actualizaciones = [];
+  compras = [];
+  vi.clearAllMocks();
   codigoDeLaBase = "WR-2026-0007";
   fanout.resultado = { scheduled: 0, sinDestino: [], detalle: [] };
+});
+
+// Caracterización del alta de Studio para SDD-0713. Revisar este contrato si cambia
+// la regla financiera: el vínculo con una OV existente no demuestra crear una preorden.
+describe("SDD-0713 · documento que se crea al recibir en China", () => {
+  it.each(["identificada", "con orden de venta", "huérfana"])("%s antes de consolidar", async (caso) => {
+    if (caso === "con orden de venta") {
+      compras = [{ id: "compra-inventada", sales_order_id: "orden-inventada", invoice_id: null }];
+    }
+    const resultado = await createReceiptAction({}, formulario(caso === "huérfana"));
+    expect(resultado.ok).toBe(true);
+    expect(recepcion()?.valores.status).toBe("pendiente_consolidacion");
+    expect(inserts.filter(({ tabla }) => tabla === "warehouse_receipts_cn")).toHaveLength(1);
+    expect(inserts.some(({ tabla }) => tabla === "warehouse_receipt_items")).toBe(true);
+    expect(inserts.some(({ tabla, valores }) => tabla === "warehouse_receipt_events" && valores.event_type === "received")).toBe(true);
+    if (caso === "con orden de venta") {
+      expect(actualizaciones).toContainEqual({ tabla: "warehouse_receipts_cn", valores: {
+        prealerta_id: "compra-inventada", sales_order_id: "orden-inventada",
+      } });
+    }
+    expect(inserts.filter(({ tabla }) => tabla === "invoices" || tabla === "sales_orders")).toHaveLength(0);
+    expect(rpcs).toEqual([]);
+    const { autoInvoiceForReceipt } = await import("@/lib/studio/sales-orders/actions");
+    expect(autoInvoiceForReceipt).not.toHaveBeenCalled();
+  });
 });
 
 describe("createReceiptAction · SDD-0491, el código lo asigna la base", () => {
