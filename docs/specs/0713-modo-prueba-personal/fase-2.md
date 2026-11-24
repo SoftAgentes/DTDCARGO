@@ -37,6 +37,7 @@ Allowlist exacta:
 - `.agents/handoffs/task_30098bbca469.md`
 - `.agents/handoffs/task_91303c329504.md`
 - `.github/workflows/practica-personal.yml`
+- `.env.example`
 - `infra/ops/tests/practica-ci.mjs`
 - `lib/studio/practica/contrato.ts`
 - `lib/studio/practica/facturacion.ts`
@@ -86,6 +87,9 @@ El formulario marca edición y retira avisos en onInput (burbujeo), después de
 capturar la edición del campo; nunca actualiza el padre en la captura nativa
 antes de onChange de los inputs controlados. Se verifica el texto antes de
 cambiar de pestaña para separar escritura de conservación/revalidación.
+El ejemplo versionado documenta los dos interruptores exclusivos de prueba
+(PRACTICA_NAVEGADOR y PRACTICA_RECIBO) sin asignarlos al runtime ni poner valores
+operativos; el contrato global de variables se conserva intacto.
 
 Gobernanza R3: MP-01/AUD-01 conservación e historial, FRM-01/ERR-01 errores
 locales, A11Y-01 controles con etiquetas y ayuda nativa, VIS-01 marca heredada.
