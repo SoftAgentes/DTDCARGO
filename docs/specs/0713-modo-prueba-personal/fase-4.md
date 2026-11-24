@@ -97,3 +97,11 @@ la resolución con motivo por capacidad explícita; no avanza otro consolidado.
 Allowlist adicional para el motor independiente y sus regresiones:
 - lib/studio/practica/destino.ts
 - lib/studio/practica/__tests__/destino.test.ts
+
+Al conectar ambos motores, la mutación compartida del receptor debe comprobar
+los manifiestos congelados antes del CAS: una estiba posterior no puede añadir,
+quitar ni mover cajas de un viaje embarcado. La comparación usa cajas exactas
+por consolidado del documento completo; no exige que el motor de China importe
+el motor de destino. Origen y destino conservan la misma revisión CAS: quien
+perdió una carrera no aplica su snapshot anterior. Se ensayarán ambas órdenes
+y el conflicto; un escaneo repetido de A no modifica el avance de B.

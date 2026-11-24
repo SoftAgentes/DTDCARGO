@@ -44,11 +44,22 @@ function permisoPara(accion: AccionDestino, p: PermisosDestino): boolean {
 function motivoValido(motivo: unknown): motivo is string {
   return typeof motivo === "string" && motivo.trim().length >= 4 && motivo.length <= 300;
 }
+// Se aplica también a la propuesta de mutación de China, antes de guardar el
+// documento compartido. Congelar en destino sin cerrar ese escritor no basta.
+export function validarManifiestosDestino(actual: EjercicioDestino, viajes: readonly ViajeAutorizado[]): void {
+  for (const fijo of actual.viajes) {
+    const origen = viajes.find(v => v.consolidado === fijo.consolidado);
+    if (!origen || origen.cajas.length !== fijo.cajas.length || new Set(origen.cajas).size !== origen.cajas.length || fijo.cajas.some(c => !origen.cajas.includes(c))) {
+      throw new Error("El viaje ya salió con sus cajas fijadas. Conserva la caja disponible para otro consolidado.");
+    }
+  }
+}
 export function aplicarDestino(actual: EjercicioDestino, comando: ComandoDestino, contexto: {
   generacion: number; viajes: readonly ViajeAutorizado[]; permisos: PermisosDestino; fecha: string;
 }): EjercicioDestino {
   if (actual.generacion !== contexto.generacion) throw new Error("La práctica cambió. Recarga antes de continuar.");
   if (!comando || !esUuid(comando.id) || !permisoPara(comando.accion, contexto.permisos)) throw new Error("No tienes permiso para esta operación o la solicitud es inválida.");
+  validarManifiestosDestino(actual, contexto.viajes);
   // La autorización se revalida incluso al recuperar un resultado ya aplicado.
   const contenido = contenidoComandoDestino(comando);
   const repetida = actual.solicitudes.find(s => s.id === comando.id);

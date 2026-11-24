@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { aplicarDestino, semillaDestino, vistaFisicaDestino, type ComandoDestino, type PermisosDestino } from "../destino";
+import { aplicarDestino, semillaDestino, validarManifiestosDestino, vistaFisicaDestino, type ComandoDestino, type PermisosDestino } from "../destino";
 
 const permisos: PermisosDestino = { embarcar:true, registrarLlegada:true, recibirCajas:true, gestionarIncidencia:true };
 function escenario() {
@@ -76,8 +76,23 @@ describe("Destino propio de práctica, independiente del contrato pendiente de C
     const mezclado={...e.contexto,viajes:[e.contexto.viajes[0],{consolidado:e.b,cajas:[e.cajas[0],e.cajas[2]]}]};
     expect(()=>aplicarDestino(d,comando("embarcar",e.b),mezclado)).toThrow(/otro viaje/);
     const cambiado={...e.contexto,viajes:[{consolidado:e.a,cajas:[e.cajas[1],e.cajas[2]]}]};
-    expect(()=>aplicarDestino(d,comando("registrar_llegada",e.a),cambiado)).toThrow(/cambiaron/);
+    expect(()=>aplicarDestino(d,comando("registrar_llegada",e.a),cambiado)).toThrow(/fijadas/);
     expect(d).toEqual(antes);
     expect(Object.keys(d).sort()).toEqual(["eventos","generacion","solicitudes","version","viajes"]);
+  });
+  it("rechaza la propuesta de estiba en A después de su salida y conserva B al releer A", () => {
+    const e=escenario(); let d=aplicarDestino(semillaDestino(1),comando("embarcar",e.a),e.contexto);
+    const origen=structuredClone(e.contexto.viajes);
+    const propuesta=[{consolidado:e.a,cajas:[...e.cajas.slice(0,2),e.cajas[2]]},{consolidado:e.b,cajas:[e.cajas[3]]}];
+    expect(()=>validarManifiestosDestino(d,propuesta)).toThrow(/caja disponible/);
+    expect(e.contexto.viajes).toEqual(origen);
+    d=aplicarDestino(d,comando("registrar_llegada",e.a),e.contexto);
+    d=aplicarDestino(d,comando("recibir_caja",e.a,{caja:e.cajas[0]}),e.contexto);
+    d=aplicarDestino(d,comando("embarcar",e.b),e.contexto);
+    d=aplicarDestino(d,comando("registrar_llegada",e.b),e.contexto);
+    d=aplicarDestino(d,comando("recibir_caja",e.b,{caja:e.cajas[2]}),e.contexto);
+    const antes=structuredClone(d);
+    expect(aplicarDestino(d,comando("recibir_caja",e.a,{caja:e.cajas[0]}),e.contexto)).toBe(d);
+    expect(d.viajes[1]).toEqual(antes.viajes[1]);
   });
 });
