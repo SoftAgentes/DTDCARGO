@@ -33,10 +33,11 @@ UI-CHECK read-only aplicado según .claude/commands/ui-check.md: hallazgo alto d
 - `50c9078fd`: preservó implementación local con validación estática y pruebas pendientes antes del merge.
 - `1a39a12eb`: merge normal de #809, segundo padre exacto `5e79383bdd972d2863d194df658beffa9cd05281`; sin conflictos.
 - `66291e030`: enlaces de Embarques y selección de shipment dentro del panel, con casos focales y documentación de dependencia.
+- `af120dbfa`: atajo canónico también para marca vacía/espacios, Tracking exacto en otra pestaña y casos de dos filas por grupo. Head de producto al abrir PR: `af120dbfa0fede792bc85a52e8ae9c83b8e7a178`.
 - El gate staged detectó líneas vacías al final de archivos nuevos; se corrigieron antes del primer commit.
 
 ## PR / BRANCH
-PR pendiente; publicación de rama propia y draft autorizada por encargo, sin integración ni despliegue.
+PR preliminar https://github.com/SoftAgentes/DTDCARGO/pull/810, en borrador, base `SoftAgentes/sdd-0710-candado-embarques-20261124`, publicada sin integración ni despliegue. El borrador documenta pruebas NO EJECUTADAS y dependencia #808; no se marca entrega completa ni se activa ready hasta la validación correspondiente. La entrega final exige checks activos.
 
 Director liberó EmbarquesClient mediante `msg_313ddae0d85c`: #809 con head `5e79383bdd972d2863d194df658beffa9cd05281`, rama base `SoftAgentes/sdd-0710-candado-embarques-20261124`. Remoto y SHA cotejados; merge-base de este hijo y esa cabeza: `8580490f8d95872a407ab83ab9acb6b1b265a451`, igual al main de la asignación. Merge normal completado sin conflictos, sin rebase/force ni tocar otro worktree. Tras reinicio de Orca, se verificó que ambos commits y seis archivos de edición posterior persistieron, sin instalación ni PR previa. #808 sigue siendo dependencia de pestañas, head observado `9e27b63d419450ca3ab93a4138df209de23b5e84`; permanece sin incorporar. PC exclusivamente para m³ según último mensaje: sin instalación, build, verify ni pruebas pesadas hasta nuevo turno.
 

@@ -15,7 +15,7 @@ confidencialidad: interno
 
 ## Objetivo y estado
 
-Sam eligió panel a la derecha para consultar la ficha sin perder la posición del listado. El acceso «Asignar cliente» debe reutilizar Tracking con autorización, vista previa, motivo y confirmación. Estado draft: implementación local y revisión estática en progreso; aceptación pendiente. No hay PR ni pruebas de ejecución todavía. Instalación y pruebas esperan el turno posterior a Embarques y m³ indicado por el Director.
+Sam eligió panel a la derecha para consultar la ficha sin perder la posición del listado. El acceso «Asignar cliente» debe reutilizar Tracking con autorización, vista previa, motivo y confirmación. Estado draft: implementación y revisión estática en progreso; aceptación pendiente. PR preliminar #810 publicada en borrador contra la rama de #809. Instalación y pruebas esperan liberación directa de SDD-0716 según el nuevo traspaso del Director; no hay pruebas de ejecución todavía.
 
 ## Casos y flujo
 
@@ -112,9 +112,10 @@ Impacto documental: esta spec, índice generado y handoff propio. No se conviert
 - Sesión Worker: `orca_session_id:4e58e02e-15cc-4709-b887-11de5ebd0b45`.
 - Director: `orca_session_id:14b98827-b1e5-41f3-aee0-c72c837f96fc`.
 - Task: `task_75e843282aed`; Dispatch: `ctx_59ec39c37538`.
-- HEAD inicial verificado igual a base reservada; PR pendiente.
+- HEAD inicial verificado igual a base reservada; PR preliminar: https://github.com/SoftAgentes/DTDCARGO/pull/810, en borrador.
 - Implementación preservada en `50c9078fd`; merge normal de #809 en `1a39a12eb`, sin conflictos y con el segundo padre exacto `5e79383bdd972d2863d194df658beffa9cd05281`.
 - Base de PR prevista: `SoftAgentes/sdd-0710-candado-embarques-20261124` (#809 abierta al recuperar Orca). Dependencia #808 verificada en `9e27b63d419450ca3ab93a4138df209de23b5e84`; no incorporada sin coordinación.
+- Head de producto publicado al abrir #810: `af120dbfa0fede792bc85a52e8ae9c83b8e7a178`, incluye conexión de Embarques en `66291e030` y atajo canónico de marcas vacías en `af120dbfa`. Los checks se activarán al pasar a ready tras la validación; el borrador no constituye entrega terminada.
 
 ### Ampliación exacta aprobada para slots y pruebas
 
