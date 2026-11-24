@@ -84,3 +84,16 @@ La matriz nueva partirá de Mi perfil y verificará ambos parciales, relectura,
 Frágil visible en destino, retención pendiente, rol denegado, resolución y
 continuación, en móvil/escritorio y ambos temas. Hasta ejecutar ese recorrido,
 la fase y su aceptación ampliada permanecen abiertas.
+
+Reparto confirmado: #812 publica tipos/valores, capacidades derivadas en origen
+y proyección segura por superficie; #813 implementa estado y comandos de destino.
+El estado de destino se indexa por el identificador recibido del contrato, nunca
+por total ni cliente. Se prepara un motor independiente que recibe una lista
+autoritativa de cajas por viaje y permisos ya resueltos por servidor. La recepción
+se cierra por conteo exacto de esas cajas, sin usar la palabra entrega ni tocar
+Facturación. Una observación pendiente impide continuar su propio viaje hasta
+la resolución con motivo por capacidad explícita; no avanza otro consolidado.
+
+Allowlist adicional para el motor independiente y sus regresiones:
+- lib/studio/practica/destino.ts
+- lib/studio/practica/__tests__/destino.test.ts
