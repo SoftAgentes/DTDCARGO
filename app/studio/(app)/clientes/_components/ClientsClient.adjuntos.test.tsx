@@ -6,8 +6,7 @@
  */
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ClientsClient } from "./ClientsClient";
-import type { Client } from "@/lib/studio/client-types";
+import { ClientsClient, type ClientListRow } from "./ClientsClient";
 import { conteoCliente, type ConteoCliente } from "@/lib/studio/documents/adjuntos";
 
 vi.mock("next/navigation", () => ({
@@ -15,16 +14,16 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-function cliente(i: number): Client {
+function cliente(i: number): ClientListRow {
   return {
     id: `c-${i}`, tenant_id: "t-1", markbox: `DTD-${1000 + i}`, name: `Cliente ${i}`,
     email: null, phone: null, address: null, rif: null, contact_name: null, tier: "regular",
-    notes: null, lat: null, lng: null, registration_channel: "admin", doc_kind: null,
+    hasNote: false, lat: null, lng: null, registration_channel: "admin", doc_kind: null,
     doc_verify_status: null, doc_verify_source: null, doc_registry_name: null,
     doc_verified_at: null, cedula_photo_path: null, advisor_id: null, aliado_id: null,
     person_id: null, created_at: "2026-08-01T00:00:00Z", updated_at: "2026-08-01T00:00:00Z",
     deleted_at: null,
-  } as unknown as Client;
+  } as ClientListRow;
 }
 
 function renderLista(adjuntos: Record<string, ConteoCliente> | null) {

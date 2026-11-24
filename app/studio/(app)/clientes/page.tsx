@@ -8,7 +8,9 @@
  */
 
 import { createClient } from "@/lib/db/server";
-import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, moduleViewDenial, requireModuleView } from "@/lib/studio/rbac-guard";
+import { canSpecial } from "@/lib/studio/rbac";
+import { readCanSeeClientNames } from "@/lib/studio/privacidad-cn";
 import {
   listClientsPage,
   parseClientFiltersFromSearchParams,
@@ -33,6 +35,10 @@ export default async function ClientesPage({
   const filters = parseClientFiltersFromSearchParams(rawParams);
 
   const supabase = await createClient();
+  const acceso = await getStudioAccess(supabase);
+  const puedeAsignar = canSpecial(acceso.role, "reassign_shipment_owner")
+    && await moduleViewDenial(supabase, "tracking") === null
+    && await readCanSeeClientNames(supabase);
   // SDD-0265: el listado necesita saber cuántos hay en total, no sólo los que
   // caben en la página. Sin eso la pantalla mentía por omisión.
   const { clients, total, limite, topeAlcanzado } = await listClientsPage(
@@ -54,7 +60,11 @@ export default async function ClientesPage({
 
   return (
     <ClientsClient
-      clients={clients}
+      clients={clients.map(({ notes, ...client }) => ({
+        ...client,
+        hasNote: Boolean(notes),
+      }))}
+      puedeAsignar={puedeAsignar}
       total={total}
       limite={limite}
       topeAlcanzado={topeAlcanzado}
