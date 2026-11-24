@@ -73,7 +73,9 @@ Prefijo común `app/studio/(app)/`. El enlace normal `/studio/clientes/[markbox]
 - `embarques/@ficha/[...rest]/page.tsx`: null al salir.
 - `embarques/ficha-cliente/[markbox]/page.tsx`: redirección canónica para acceso directo.
 
-Ambas páginas interceptadas reutilizan el mismo ClientDetailContent server y el contenedor ClientDetailPanel client. Cerrar usa router.back para recuperar lista montada y restauración de foco del DrawerShell; se debe probar el desmontaje en navegación, el foco y la interacción con las pestañas internas de la ficha antes de dar aceptación. Director confirmó las rutas y añadió page.tsx raíz nula en ambos slots. La integración de EmbarquesClient sigue dependiendo del traspaso 0710.
+Ambas páginas interceptadas reutilizan el mismo ClientDetailContent server y el contenedor ClientDetailPanel client. Cerrar usa router.back para recuperar lista montada y restauración de foco del DrawerShell; se debe probar el desmontaje en navegación, el foco y la interacción con las pestañas internas de la ficha antes de dar aceptación. Director confirmó las rutas y añadió page.tsx raíz nula en ambos slots. Tras el traspaso 0710 se conectaron enlaces explícitos en EmbarquesClient y ShipmentDetailDrawer. El enlace de ficha del grupo es hermano del botón del acordeón, sin controles anidados.
+
+La fila DTD-0000 lleva `?embarque=<id>` al panel: ese valor solo selecciona dentro de los embarques ya leídos bajo sesión/tenant de la ficha, nunca crea una relación. Un id ajeno, vacío o ambiguo no habilita la asignación. Sin Shipping Mark vinculado se muestra «Sin ficha vinculada» y se conserva código/rastreo; no se inventa DTD-0000 como relación. Los handlers de candado, asistente, selección y rastreo incorporados de #809 no se modificaron.
 
 ## Evidencia del diagnóstico (base reservada)
 
@@ -109,6 +111,8 @@ Impacto documental: esta spec, índice generado y handoff propio. No se conviert
 - Director: `orca_session_id:14b98827-b1e5-41f3-aee0-c72c837f96fc`.
 - Task: `task_75e843282aed`; Dispatch: `ctx_59ec39c37538`.
 - HEAD inicial verificado igual a base reservada; PR pendiente.
+- Implementación preservada en `50c9078fd`; merge normal de #809 en `1a39a12eb`, sin conflictos y con el segundo padre exacto `5e79383bdd972d2863d194df658beffa9cd05281`.
+- Base de PR prevista: `SoftAgentes/sdd-0710-candado-embarques-20261124` (#809 abierta al recuperar Orca). Dependencia #808 verificada en `9e27b63d419450ca3ab93a4138df209de23b5e84`; no incorporada sin coordinación.
 
 ### Ampliación exacta aprobada para slots y pruebas
 

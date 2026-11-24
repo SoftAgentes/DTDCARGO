@@ -101,7 +101,9 @@ export function ShipmentDetailDrawer({
               </div>
               {shipment.client_markbox && (
                 <Link
-                  href={`/studio/clientes/${shipment.client_markbox}`}
+                  href={`/studio/embarques/ficha-cliente/${encodeURIComponent(shipment.client_markbox)}?embarque=${encodeURIComponent(shipment.id)}`}
+                  scroll={false}
+                  onClick={(event) => event.currentTarget.focus({ preventScroll: true })}
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
                     color: "var(--accion-text)",
