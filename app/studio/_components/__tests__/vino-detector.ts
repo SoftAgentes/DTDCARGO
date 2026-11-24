@@ -18,7 +18,7 @@ export const RAIZ = join(__dirname, "..", "..", "..", "..");
 const VINO_TOKEN = /var\(--(?:grad-|color-)?wine[a-z-]*/g;
 /** Clases Tailwind de vino, con o sin variante (`hover:`, `focus-within:`, `group-[[open]]:`…). */
 const VINO_CLASE =
-  /(?<=^|[\s"'`])(?:(?:[a-z-]+|[a-z-]*\[[^\s"'`]*?\]):)*(?:bg|text|border|ring|outline|fill|stroke|from|via|to|accent|decoration|divide|placeholder|caret|shadow)-wine(?:-[a-z]+)?(?![\w-])/gm;
+  /(?<=^|[\s"'`])(?:[a-z-]*\[[^\s"'`]*?\]:|[a-z-]+:)*(?:bg|text|border|ring|outline|fill|stroke|from|via|to|accent|decoration|divide|placeholder|caret|shadow)-wine(?:-[a-z]+)?(?![\w-])/gm;
 
 /**
  * Tonos `"wine"` dados como valor. Se quitan antes las uniones de tipo
