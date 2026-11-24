@@ -41,7 +41,7 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio }:
     {error && <p ref={aviso} role="alert" tabIndex={-1}>{error}</p>}
     <details><summary aria-label="Ayuda: recibir en China">ⓘ Recibir en China</summary><p>Recibir registra la llegada de estas cajas. La regla vigente no crea una Pre-orden al recibir: la recepción nueva queda en Almacén China y todavía no tiene un documento para facturar. Identificar una carga huérfana tampoco crea un documento financiero.</p></details>
     <details><summary aria-label="Ayuda: consolidar">ⓘ Consolidar</summary><p>Primero recibe e identifica la carga. Este ejercicio conserva las mismas cajas en PRA-CON-001. En este ejercicio, agregar al consolidado no emite otra factura. En el trabajo real, el paso de China a consolidado puede emitir una factura cuando reúne los requisitos; consulta el estado en Facturación. El caso avanzado ya trae PRA-PRE-001 preparada para practicar Facturación según tus permisos.</p></details>
-    {vista && <p>Generación {vista.documento.generacion} · revisión {vista.revision}. Reiniciar mi práctica restablece también estas cargas.</p>}
+    {vista && <p>Tu avance está guardado. Reiniciar mi práctica restablece también estas cargas.</p>}
     {vista?.documento.cargas.map(c => <fieldset key={c.envio} disabled={ocupado}>
       <legend>{c.envio}</legend>
       <p>{c.preparada ? "Recepción avanzada preparada · Pre-orden existente PRA-PRE-001" : "Caso nuevo · Sin preorden creada al recibir"}</p>
