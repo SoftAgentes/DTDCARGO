@@ -18,14 +18,14 @@
   Sin scripts, sin datos y sin red. Si Chatwoot cambia las clases o la ruta, los íconos
   vuelven a gris; no se rompe nada.
 
-  Desplegarlo es una puerta con OK de Sam. Lo prueba
+  Cargarlo en producción pide el OK nominal de Sam. Lo prueba
   `lib/studio/chatwoot/__tests__/canales-color.test.ts`, que lee este archivo.
 -->
 <style id="dtd-canales-color">
   .i-woot-whatsapp { color: #25d366; }
   .i-woot-messenger { color: #0866ff; }
   .i-woot-instagram { color: #e4405f; }
-  .dark .i-woot-messenger { color: #4d8fff; }
+  body.dark .i-woot-messenger { color: #4d8fff; }
   a[href$="/inbox/10"] .i-woot-api { color: #1f4fa8; }
-  .dark a[href$="/inbox/10"] .i-woot-api { color: #7faaf0; }
+  body.dark a[href$="/inbox/10"] .i-woot-api { color: #7faaf0; }
 </style>

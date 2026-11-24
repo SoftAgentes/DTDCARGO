@@ -38,13 +38,15 @@ describe("canales-color.html", () => {
     expect(REGLAS.get(".i-woot-whatsapp")).toBe("#25d366");
     expect(REGLAS.get(".i-woot-messenger")).toBe("#0866ff");
     expect(REGLAS.get(".i-woot-instagram")).toBe("#e4405f");
+    // En oscuro, Messenger sube un tono para leerse sobre el fondo del panel.
+    expect(REGLAS.get("body.dark .i-woot-messenger")).toBe("#4d8fff");
   });
 
   it("el portal va en el azul de acción de DTD, en claro y en oscuro, solo en su fila", () => {
     const claro = /--accion:\s*(#[0-9A-Fa-f]{6});/.exec(TOKENS)?.[1]?.toLowerCase();
     expect(claro).toBe("#1f4fa8");
     expect(REGLAS.get('a[href$="/inbox/10"] .i-woot-api')).toBe(claro);
-    expect(REGLAS.get('.dark a[href$="/inbox/10"] .i-woot-api')).toBe("#7faaf0");
+    expect(REGLAS.get('body.dark a[href$="/inbox/10"] .i-woot-api')).toBe("#7faaf0");
     expect(TOKENS.toLowerCase()).toContain("--accion: #7faaf0;");
   });
 
@@ -52,5 +54,13 @@ describe("canales-color.html", () => {
     const conApi = [...REGLAS.keys()].filter((s) => s.includes("i-woot-api"));
     expect(conApi.every((s) => s.includes('a[href$="/inbox/10"]'))).toBe(true);
     expect([...REGLAS.keys()].some((s) => s.includes("i-woot-mail"))).toBe(false);
+  });
+});
+
+describe("canales-color.html · modo oscuro", () => {
+  it("las reglas de oscuro cuelgan de `body.dark` (Chatwoot pone la clase en <body>), nunca de un `.dark` suelto", () => {
+    const oscuras = [...REGLAS.keys()].filter((s) => s.includes("dark"));
+    expect(oscuras.length).toBe(2);
+    for (const s of oscuras) expect(s.startsWith("body.dark ")).toBe(true);
   });
 });

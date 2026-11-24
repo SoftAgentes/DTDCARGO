@@ -18,3 +18,8 @@
 - FUERA DE ALCANCE DETECTADO:
   - Chatwoot 4.20.1 trae `useBrandIcon` (íconos de marca a color) en `ChannelIcon.vue`, pero el menú lateral no lo usa; activarlo exigiría tocar la imagen.
   - El renombre de «Conversaciones del portal» es la fase 5 de la SDD-0707.
+
+## v0.2 (revisión de Dir_DTD sobre adcc84452, CHANGES_REQUESTED)
+- Medio: las reglas de oscuro pasan de `.dark …` a `body.dark …`; la prueba lo exige con un caso nuevo.
+- Bajos: la prueba comprueba Messenger en oscuro (#4d8fff); el runbook §4 y el comentario del archivo dicen «OK nominal de Sam».
+- Observaciones para la comprobación de Sam (en el runbook): verde de WhatsApp 1,9:1 sobre blanco (color de marca) y los tres íconos de redes toman color en todo el panel.
