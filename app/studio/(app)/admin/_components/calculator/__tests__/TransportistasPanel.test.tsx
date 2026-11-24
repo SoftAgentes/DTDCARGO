@@ -11,6 +11,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CarrierTariff, FreightCarrier } from "@/lib/studio/freight-carriers/types";
 import { validateTariffInput } from "@/lib/studio/freight-carriers/types";
 import { TransportistasPanel } from "../TransportistasPanel";
+import { CbmExplicador } from "@/components/CbmExplicador";
+import { FAQS } from "@/lib/faqs";
 
 // El Scheduler de React avanza con `setImmediate` y RTL cierra cada `findBy*` con
 // `setTimeout(0)`: cuál corre primero depende de la carga, y una aserción que corre
@@ -88,6 +90,24 @@ beforeEach(() => {
   for (const fn of [mocks.save, mocks.remove, mocks.bulk, mocks.setDefault, mocks.router.refresh, mocks.router.push, mocks.toast.success, mocks.toast.warning]) {
     fn.mockReset();
   }
+});
+
+describe("guía pública de m³ (SDD-0716)", () => {
+  it("separa el ejemplo fijo del volumen que cambia con las medidas", () => {
+    const { container } = render(<CbmExplicador />);
+    expect(container.textContent).not.toMatch(/ft³|pies cúbicos/);
+    expect(screen.getByText(/Ejemplo ficticio:.*0,24 m³/)).toBeVisible();
+    const bultos = screen.getByLabelText("Bultos iguales");
+    escribir(bultos, "2");
+    expect(screen.getByText("0,24", { exact: true })).toBeVisible();
+    escribir(bultos, "3");
+    expect(screen.getByText("0,36", { exact: true })).toBeVisible();
+    expect(screen.getByText(/Ejemplo ficticio:.*0,24 m³/)).toBeVisible();
+    const faq = FAQS.find((f) => f.ancla === "cbm");
+    expect(faq).toBeDefined();
+    expect(faq!.respuesta).toContain("0,24 m³ (CBM)");
+    expect(faq!.respuesta).not.toMatch(/ft³|pies cúbicos/);
+  });
 });
 
 describe("tarifario del transportista seleccionado", () => {

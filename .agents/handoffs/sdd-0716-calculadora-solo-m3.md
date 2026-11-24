@@ -27,13 +27,33 @@ Pruebas preparadas del PATCH sin propiedad legacy y filtros existentes, valor
 nulo/cuatro decimales, entrada explícita válida/vacía/inválida y alta por omisión.
 
 ## VALIDACIÓN
-Guard con owner: PASÓ. Pruebas focales preparadas, NO EJECUTADAS (sin dependencias).
+PASÓ: guard con owner; pnpm install --frozen-lockfile (lockfile sin cambios).
+PASÓ: seis suites focales, 193/193 pruebas, con maxWorkers=1:
+TransportistasPanel, carrier-actions-escrituras, carrier-tariff-actions,
+calculadora, calculadora-minimo-en-cajas y faq-contratos.
+PASÓ: pnpm typecheck, exit 0 (reanudada tras reinicio; no se usa como evidencia
+la corrida interrumpida sin recibo). PASÓ: ESLint de los siete archivos TS/TSX
+del alcance, exit 0. PASÓ: sdd:check (choques históricos exceptuados), docs:check,
+governance:check, components:check y git diff --check. El error inicial de ajv
+quedó resuelto al instalar dependencias congeladas.
+NO EJECUTADO local: suite global, lint global y build; asignados por Director
+a Quality sobre cabeza exacta. CI antes de ready era SKIPPED por draft, no verde.
+
 ui-check read-only: tokens, fuentes, controles y estados existentes conservados;
-sin nuevos anchos fijos. Veredicto estático OK; render claro/oscuro NO VERIFICADO.
-Build, verify y suites: pendientes de turno del Director antes de instalar.
-PASÓ: sdd:check (choques históricos exceptuados), docs:check,
-governance:check y git diff --check. NO DISPONIBLE: components:check por
-ERR_MODULE_NOT_FOUND de ajv (worktree sin node_modules).
+sin nuevos anchos fijos. Veredicto OK del diff. Render sintético observado en
+Orca: tabla y drawer de edición claro/oscuro, sin columna ni campo ft³;
+guía clara con fórmula y ejemplo fijo separados del resultado variable.
+Al cambiar cantidad a 3, el resultado cambió a 0,36 CBM y mantuvo 0,12 por bulto.
+No se guardó ninguna tarifa: acciones de servidor y navegación sustituidas.
+Límite: fuentes sin next/font, arnés aislado Vite con CSS real público + Studio;
+forzar oscuro en la guía pública mezcla tokens y genera contraste inválido,
+por eso esa captura NO valida tema oscuro del sitio público y no prueba regresión.
+Evidencia local conservada fuera del repo público en
+`C:/Users/AKX generator/Documents/Codex/evidence/sdd0716-20261124/`:
+tabla-claro.png, tabla-oscuro.png, drawer-claro.png, drawer-oscuro.png,
+guia-claro.png y sdd0716-visual.mjs. Captura oscura forzada etiquetada no validada.
+SHA256 drawer-claro: 877B09671B348E80F06D602AD451670B2EC844CEB0DA1BEB0763918A393F7D4F.
+SHA256 drawer-oscuro: 967774B4EC3E786CBF548BDEB1D490E77760D0E347EB772119D72DAD6BF701F7.
 Validador del plugin: FALLÓ con «policy-registry.json está desactualizado»;
 cápsula normativa local vigente, no se actualizó plugin fuera del alcance.
 Governance-check estático: FRM-01, VIS-01/02 y A11Y-01 conservan controles,
@@ -43,17 +63,20 @@ No se infiere conformidad visual del conteo de scripts.
 
 ## COMMITS
 83825bae2 — implementación y pruebas preparadas sobre base de reserva asignada.
+5d2eb1c03 — corrección focal y preservación legacy por omisión en UPDATE.
+El cierre agrega prueba dinámica de guía y esta evidencia; SHA final en Git/PR.
 
 ## PR / BRANCH
-PR draft https://github.com/SoftAgentes/DTDCARGO/pull/806 hacia main;
+PR https://github.com/SoftAgentes/DTDCARGO/pull/806 hacia main;
 rama propia aislada verificada. Consultar Git/PR para SHA actual.
 
 ## PENDIENTES DE ESTA TAREA
-Instalación, pruebas focales, render sintético claro/oscuro y cierre de validación.
-Director asignó turno después de Embarques (msg_e12f9ed11f5e); no iniciar carga
-hasta aviso. Si el cierre completo local resulta desproporcionado, lint global,
-tipos, suite completa, build y gates de `verify` quedan a CI en cabeza exacta;
-la prueba focal y el render sintético siguen pendientes locales antes de ready.
+Quality global y revisión independiente sobre cabeza exacta, a cargo del Director.
+SDD queda in-progress hasta cierre global. Merge y deploy no autorizados.
+Turno exclusivo autorizado por msg_972087138829 y liberado explícitamente
+al terminar las corridas: msg_a3b075427ab6 al Director y msg_8c58f6bfbab3
+a dispatch:ctx_59ec39c37538, con «Turno exclusivo libre, comienza 0715».
+Servidor del arnés detenido antes de liberar la PC.
 
 ## FUERA DE ALCANCE DETECTADO
 Ninguno adicional en las rutas inspeccionadas. Legacy lib/calculadora.ts sin
@@ -61,4 +84,4 @@ consumidores públicos que activen pies cúbicos; se conserva sin cambios.
 
 ## HANDOFF AL DIRECTOR
 Impacto documental: spec y su índice generado; esta evidencia es local.
-No se consultaron ni mutaron datos reales. Claim retenido mientras sigue escritura.
+No se consultaron ni mutaron datos reales. Claim se libera al terminar escritura.

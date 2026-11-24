@@ -1,7 +1,7 @@
 ---
 sdd: "0716"
 title: "Calculadora y ayudas solo en m³"
-status: draft
+status: in-progress
 author: "Codex"
 created: 2026-11-24
 updated: 2026-11-24
@@ -54,5 +54,7 @@ Pruebas focales sintéticas: columna ausente, edición sin clave legacy,
 PATCH sin esa propiedad con filtros tenant/transportista/activo intactos,
 entradas legacy explícitas válidas, nulas e inválidas y alta con nulo por omisión.
 El ejemplo fijo vive en el bloque didáctico, separado del resultado variable.
-Pendientes ejecución, render
-claro/oscuro y cierre canónico con turno de máquina solicitado al Director.
+Validación local: 193 pruebas focales, tipos, lint del alcance y gates pasaron.
+Render sintético observado: tabla y drawer claro/oscuro; guía clara y cambio de
+cantidad. Oscuro forzado de la guía en arnés mixto no valida el sitio público.
+Cierre global delegado a Quality en la cabeza exacta; no se repite suite completa.
