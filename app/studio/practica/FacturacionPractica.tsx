@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { API_PRACTICA } from "@/lib/studio/practica/contrato";
 import { totalPractica, erroresLineaPractica, type FacturacionPractica as Datos, type ComandoFactura, type LineaPractica } from "@/lib/studio/practica/facturacion";
 import estilos from "./practica.module.css";
@@ -80,14 +80,12 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
   function reemplazarLineas(nuevas: LineaPractica[]) {
     setLineas(nuevas); setIdentificadores(nuevasIdentidades(nuevas.length)); setTextoPendiente(true); setVersionEditor(v => v + 1);
   }
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!solicitudDocumento || solicitudAtendida.current === solicitudDocumento.id || !vista || ocupado) return;
     solicitudAtendida.current = solicitudDocumento.id;
-    queueMicrotask(() => {
-      if (!vista.documento.facturas.some(f => f.codigo === solicitudDocumento.codigo)) return;
-      if (sucio) setDescarte(solicitudDocumento.codigo);
-      else { cambiarDocumento(solicitudDocumento.codigo); document.getElementById("titulo-facturacion")?.focus(); }
-    });
+    if (!vista.documento.facturas.some(f => f.codigo === solicitudDocumento.codigo)) return;
+    if (sucio) setDescarte(solicitudDocumento.codigo);
+    else { cambiarDocumento(solicitudDocumento.codigo); document.getElementById("titulo-facturacion")?.focus(); }
   }, [solicitudDocumento, vista, ocupado]); // eslint-disable-line react-hooks/exhaustive-deps
   return <section aria-labelledby="titulo-facturacion" className={estilos.facturacion}>
     <h2 id="titulo-facturacion" tabIndex={-1}>Facturación de práctica</h2>

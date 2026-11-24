@@ -527,8 +527,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
           await esperar(p.getByLabel("Documento",{exact:true})).toHaveValue("PRA-PRE-001");
           await p.getByLabel("Concepto 1",{exact:true}).fill("Cambio sin guardar ficticio");
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Cambio sin guardar ficticio");
           await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
           await esperar(p.getByRole("dialog",{name:"Descartar conceptos sin guardar"})).toBeVisible();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Cambio sin guardar ficticio");
           await p.getByRole("button",{name:"Cancelar",exact:true}).click();
           await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Cambio sin guardar ficticio");
           await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
