@@ -160,3 +160,21 @@ como opción de ensayo sin valor operativo. Preparar el lector limpia la entrada
 la consulta previa se conserva aparte y pierde confirmación al cambiar el código.
 Los select tienen nombres accesibles explícitos y el ensayo conserva diagnóstico
 ARIA y captura sintética ante un fallo, sin cambiar los criterios del gate.
+
+## Revalidación visible de permisos al volver a la pestaña
+Seguimiento task_92b99922a1b9 sobre f343963809e920ed56a43e14f394e3574a239aca.
+El estado revalidado por el contenedor debe limitar también la proyección de China
+sin exigir Recargar cargas: cn/naviera por separado y ejercicioCn estricto.
+Una respuesta anterior de China no puede restaurar una facultad retirada. La
+consulta, cantidades y selección aún autorizadas permanecen montadas; un diálogo
+de reinicio sin edición efectiva se cierra y no reaparece al recuperar facultad.
+La retirada no cancela ni libera el bloqueo de una escritura que espera respuesta;
+el servidor conserva sus verificaciones por operación y la revisión CAS.
+Primero se reproduce en Chromium sin modificar producto; se registra el resultado
+previo y posterior en el recibo de PR, conservando la misma regresión.
+Allowlist exacta del seguimiento:
+- app/studio/practica/ChinaPractica.tsx
+- lib/studio/practica/__tests__/acceso.test.ts
+- docs/specs/0713-modo-prueba-personal/fase-3.md
+- .agents/handoffs/task_92b99922a1b9.md
+No se modifican permisos reales, identidad, SQL ni reglas financieras.
