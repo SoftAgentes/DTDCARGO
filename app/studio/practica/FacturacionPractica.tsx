@@ -55,7 +55,13 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
   const editable = !!vista?.edicion && factura?.estado === "borrador";
   const sucio = !!factura && (textoPendiente || JSON.stringify(lineas) !== JSON.stringify(factura.lineas));
   useEffect(() => { onBloqueoSalida(ocupado || sucio); return () => onBloqueoSalida(false); }, [ocupado, sucio, onBloqueoSalida]);
-  useEffect(() => { if (error) avisoError.current?.focus(); }, [error]);
+  useEffect(() => {
+    if (!error) return;
+    const activo = document.activeElement;
+    // reportValidity ya señala y enfoca el campo: no interrumpir su corrección.
+    if (activo instanceof HTMLInputElement && formulario.current?.contains(activo) && !activo.validity.valid) return;
+    avisoError.current?.focus();
+  }, [error]);
   useEffect(() => {
     const avisar = (e: BeforeUnloadEvent) => { if (sucio) { e.preventDefault(); e.returnValue = ""; } };
     window.addEventListener("beforeunload", avisar);
@@ -99,7 +105,7 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       <p><strong>{factura.codigo}</strong> · Embarque {factura.embarque} · {factura.estado}</p>
       <Ayuda titulo="Revisar el documento">PRA-PRE-001 comienza como preorden pendiente y PRA-FAC-002 comienza emitida. Revisa arriba el estado actual de cada documento. Pertenecen a embarques inventados distintos.</Ayuda>
       {!vista.edicion && <p>Tu permiso actual es de consulta.</p>}
-      <form ref={formulario} onSubmit={e => e.preventDefault()} onInputCapture={() => { setTextoPendiente(true); setError(""); }}>
+      <form ref={formulario} onSubmit={e => e.preventDefault()} onInput={() => { setTextoPendiente(true); setError(""); }}>
       <fieldset disabled={!editable || ocupado || suspendida} aria-describedby="reglas-conceptos"><legend>Conceptos de la factura</legend>
         <p id="reglas-conceptos">Concepto, cantidad y precio son obligatorios. Cantidad entera; precio con hasta dos decimales.</p>
         {lineas.map((l, i) => <div key={identificadores[i]} className={estilos.linea}>

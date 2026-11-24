@@ -564,7 +564,9 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Documento",{exact:true}).selectOption("PRA-PRE-001");
           await p.getByRole("button",{name:"Repartir USD 300 en tres conceptos",exact:true}).click();
           const conceptoBorrador = p.getByLabel("Concepto 2",{exact:true});
-          await conceptoBorrador.fill("Concepto ficticio sin guardar"); await conceptoBorrador.focus();
+          await conceptoBorrador.fill("Concepto ficticio sin guardar");
+          await esperar(conceptoBorrador).toHaveValue("Concepto ficticio sin guardar");
+          await conceptoBorrador.focus();
           const lecturasAntes = lecturasFactura;
           demorarEstado = true;
           const otra = await contextoBrowser.newPage(); await otra.goto("about:blank"); await otra.bringToFront(); await p.bringToFront();
@@ -603,8 +605,14 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await precio.fill("12.345"); const escriturasAntes = escriturasFactura;
           await guardar.click(); await esperar(precio).toHaveValue("12.345");
           await esperar(precio).toHaveAttribute("aria-invalid","true");
+          await esperar(precio).toBeFocused();
           expect(escriturasFactura).toBe(escriturasAntes);
           await precio.fill(""); await esperar(precio).toHaveValue("");
+          // También se borra con teclado, como lo haría una persona.
+          await precio.fill("12.345"); await guardar.click();
+          await esperar(precio).toBeFocused();
+          await precio.press("ControlOrMeta+A"); await precio.press("Backspace");
+          await esperar(precio).toHaveValue("");
           await precio.fill("12,"); await guardar.click(); await esperar(precio).toHaveValue("12,");
           expect(escriturasFactura).toBe(escriturasAntes);
           // El 413 de Traefik puede ser texto plano: el editor debe permitir corregir.
