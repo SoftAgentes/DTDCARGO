@@ -10,9 +10,11 @@ import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export default async function ModuleGateLayout({
   children,
+  ficha,
 }: {
   children: React.ReactNode;
+  ficha: React.ReactNode;
 }) {
   await requireModuleView("clients");
-  return <>{children}</>;
+  return <>{children}{ficha}</>;
 }

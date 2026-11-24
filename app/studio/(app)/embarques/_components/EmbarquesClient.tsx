@@ -52,6 +52,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Icon } from "@/app/studio/_components/icons";
 import { ShipmentDetailDrawer } from "./ShipmentDetailDrawer";
+import { esSinCliente } from "../../tracking/[id]/_components/ClienteDelEmbarque";
 import { estadoDeCajas, type CajasDeEnvio } from "@/lib/studio/cajas-por-proveedor";
 import { AdjuntosConteo } from "@/app/studio/_components/documents/AdjuntosConteo";
 import {
@@ -1680,6 +1681,16 @@ function DetallePorCliente({
                     </span>
                   )}
                 </button>
+                {c.clientMarkbox && (
+                  <Link href={`/studio/embarques/ficha-cliente/${encodeURIComponent(c.clientMarkbox)}`}
+                    scroll={false}
+                    onClick={(event) => event.currentTarget.focus({ preventScroll: true })}
+                    className="studio-btn studio-btn-ghost"
+                    style={{ minHeight: 44 }}
+                    aria-label={`Ver ficha de ${c.clientName} · ${c.clientMarkbox}`}>
+                    Ver ficha
+                  </Link>
+                )}
               </th>
               <td style={TD_DETALLE}>{c.stats.count.toLocaleString("es-VE")}</td>
               <td style={TD_DETALLE}>{(c.cajas ?? 0).toLocaleString("es-VE")}</td>
@@ -1838,18 +1849,15 @@ function GroupedTable({
                   {group.clientName}
                 </span>
                 {group.clientMarkbox && (
-                  <Link
-                    href={`/studio/clientes/${group.clientMarkbox}`}
-                    onClick={(e) => e.stopPropagation()}
+                  <span
                     style={{
                       font: "700 11.5px/1 var(--f-mono)",
-                      color: "var(--accion-text)",
-                      textDecoration: "underline", textUnderlineOffset: 3,
+                      color: "var(--ink)",
                       letterSpacing: "0.02em",
                     }}
                   >
                     {group.clientMarkbox}
-                  </Link>
+                  </span>
                 )}
               </div>
               <div
@@ -1886,6 +1894,17 @@ function GroupedTable({
                 {formatCbm(group.stats.totalCbm)} m³
               </span>
             </button>
+
+            {group.clientMarkbox && (
+              <Link href={`/studio/embarques/ficha-cliente/${encodeURIComponent(group.clientMarkbox)}`}
+                scroll={false}
+                onClick={(event) => event.currentTarget.focus({ preventScroll: true })}
+                className="studio-btn studio-btn-ghost"
+                style={{ minHeight: 44 }}
+                aria-label={`Ver ficha de ${group.clientName} · ${group.clientMarkbox}`}>
+                Ver ficha de cliente
+              </Link>
+            )}
 
             {/* Children rows (cuando isOpen) */}
             {/* Scroll horizontal aislado: el grid de 8 columnas necesita ~824px
@@ -2012,6 +2031,23 @@ function GroupedTable({
                         >
                           {s.code}
                         </button>
+                        {s.id && esSinCliente(s.client_markbox) && (
+                          <Link href={s.client_markbox?.trim()
+                            ? `/studio/embarques/ficha-cliente/${encodeURIComponent(s.client_markbox.trim())}?embarque=${encodeURIComponent(s.id)}`
+                            : `/studio/tracking/${encodeURIComponent(s.id)}`}
+                            target={s.client_markbox?.trim() ? undefined : "_blank"}
+                            rel={s.client_markbox?.trim() ? undefined : "noopener"}
+                            scroll={false} className="studio-emb-rastrear"
+                            style={{ minHeight: 44 }}
+                            aria-label={`Asignar cliente del embarque ${s.code}${s.client_markbox?.trim() ? "" : " en Tracking (otra pestaña)"}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              event.currentTarget.focus({ preventScroll: true });
+                            }}>
+                            Asignar cliente
+                          </Link>
+                        )}
+                        {!s.client_markbox?.trim() && <span>Sin ficha vinculada. Tracking abre en otra pestaña.</span>}
                       </span>
                       <span
                         style={{
