@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { API_PRACTICA, AVISO_LISTO, AVISO_PASE, AVISO_ABIERTA, esToken, MODULOS_PRACTICA, type VistaPractica } from "@/lib/studio/practica/contrato";
 import estilos from "./practica.module.css";
 
@@ -16,10 +16,22 @@ async function operacion(nombre: string, body: object = {}, signal?: AbortSignal
 }
 
 export function PracticaPersonal({ real }: { real: string }) {
+  const pagina = useRef<HTMLElement>(null);
   const [vista, setVista] = useState<VistaPractica | null>(null);
   const [mensaje, setMensaje] = useState("Comprobando tu acceso…");
   const [saliendo, setSaliendo] = useState(false);
   const ultimaConsulta = useRef(0);
+  useLayoutEffect(() => {
+    const aviso = document.querySelector<HTMLElement>("[data-entorno-prueba]");
+    if (!aviso) return;
+    // Reserva su altura real, también cuando cambia el texto o el viewport.
+    const reservar = () => pagina.current?.style.setProperty("--practica-aviso-global", `${aviso.getBoundingClientRect().bottom}px`);
+    reservar();
+    const observador = new ResizeObserver(reservar);
+    observador.observe(aviso, { box: "border-box" });
+    window.addEventListener("resize", reservar);
+    return () => { observador.disconnect(); window.removeEventListener("resize", reservar); };
+  }, []);
   const consultar = useCallback(async (signal: AbortSignal) => {
     const turno = ++ultimaConsulta.current;
     try {
@@ -87,7 +99,7 @@ export function PracticaPersonal({ real }: { real: string }) {
   }
 
   return (
-    <main className={estilos.pagina}>
+    <main ref={pagina} className={estilos.pagina}>
       <header className={estilos.franja}>
         <strong>Modo de prueba · Datos inventados</strong>
         <button type="button" className="studio-btn studio-btn-dark" onClick={salir} disabled={saliendo}>
