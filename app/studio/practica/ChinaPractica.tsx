@@ -16,15 +16,11 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
   const bloqueo = useRef(false);
   const montado = useRef(true);
   const [permisosRespuesta, setPermisosRespuesta] = useState<{ permisos: PermisoPractica[]; estado: PermisoPractica[] }>();
-  // Una respuesta China anterior nunca amplía el estado revalidado del padre.
-  const permisosActuales = (permisosRespuesta?.permisos ?? []).flatMap(p => {
-    // Una consulta posterior al último estado sí obtiene facultades frescas del servidor.
-    if (permisosRespuesta?.estado === permisos) return [p];
-    const vigente = permisos.find(actual => actual.id === p.id);
-    return vigente ? [{ ...p, edicion: p.edicion && vigente.edicion,
-      ...(p.id === "cn" ? { ejercicioCn: p.ejercicioCn === true && vigente.ejercicioCn === true } : {}),
-    }] : [];
-  });
+  // Estado y China usan la misma autoridad de servidor: gana la verificación nueva,
+  // tanto para conceder como para retirar. Una respuesta iniciada antes no la revive.
+  const permisosActuales = !permisosRespuesta ? [] : (
+    permisosRespuesta.estado === permisos ? permisosRespuesta.permisos : permisos
+  ).filter(p => p.id === "cn" || p.id === "naviera");
   const puede = (id: string) => permisosActuales.some(p => p.id === id && p.edicion);
   const ejercicioPermitido = permisosActuales.some(p => p.id === "cn" && p.edicion && p.ejercicioCn === true);
   const puedeReiniciar = !!vista && !permisos.some(p => p.id === "invoices") && (puede("cn") || puede("naviera"));

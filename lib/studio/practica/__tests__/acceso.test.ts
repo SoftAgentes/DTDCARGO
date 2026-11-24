@@ -572,13 +572,24 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toHaveCount(0);
           };
           usuarios.get(cuentaId)!.role="operations";
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:true}]);
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:false}]);
           await revalidarEstado();
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
-          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta",{exact:true})).toBeVisible();
           await ejercicio.getByLabel("Código de etiqueta de práctica",{exact:true}).fill("DTD-B-99007131");
           await ejercicio.getByRole("button",{name:"Consultar etiqueta de práctica",exact:true}).click();
           await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007131",exact:true})).toBeVisible();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
+          const lecturasAntesConcesion=lecturasChina, escriturasAntesConcesion=escriturasChina;
+          // La respuesta operativa guardada nació sin edición ni ejercicioCn.
+          // Solo estado concede CN/capacidad al volver, sin haberlas cargado antes.
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:false}]);
+          await revalidarEstado();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Solo consulta",{exact:true})).toBeVisible();
+          expect(lecturasChina).toBe(lecturasAntesConcesion); expect(escriturasChina).toBe(escriturasAntesConcesion);
           await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("2");
           await ejercicio.getByLabel("Consolidado de práctica",{exact:true}).selectOption("PRA-CON-CN-B");
           const lecturasAntesRecorte=lecturasChina, escriturasAntesRecorte=escriturasChina;
@@ -601,6 +612,9 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",revision:revisionInicial,comando:{accion:"ejercicio",envio:"PRA-COMPRA-CHINA-001",operacion:{id:randomUUID(),accion:"recibir",codigo:"DTD-B-99007131",cantidad:1}}},sesionActual,prueba)).status).toBe(403);
+          usuarios.get(cuentaId)!.region="cn";
+          await revalidarEstado();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeEnabled();
           await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
           await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toBeVisible();
           ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:false}]);
