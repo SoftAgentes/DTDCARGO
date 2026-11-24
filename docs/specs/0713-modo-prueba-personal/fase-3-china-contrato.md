@@ -36,7 +36,9 @@ financiera preparada de los ejercicios anteriores permanece independiente.
 Solo acciones del ejercicio con idempotency ID UUID, revisión vigente y sesión
 propietaria. El servidor consulta el permiso efectivo CN y la habilitación del
 rol/área CN antes de cada escritura. Consulta sin edición conserva lookup y detalle.
-Recibir N adopta primeras cajas esperadas por secuencia a una recepción; cargar N
+Recibir N exige una etiqueta pendiente: adopta primero la caja escaneada y luego
+las demás esperadas por secuencia (0245, paso 6). Una etiqueta recibida o montada
+se rechaza aunque quede otra pendiente; el replay del UUID original no muta. Cargar N
 incluye primero la caja escaneada y luego las recibidas disponibles por secuencia
 a un lote, conforme a 0246:131-157. Reintentar el mismo ID y payload
 recupera el resultado; reutilizar ID con otro payload se rechaza.

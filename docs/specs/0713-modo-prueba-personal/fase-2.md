@@ -90,6 +90,11 @@ cambiar de pestaña para separar escritura de conservación/revalidación.
 El ejemplo versionado documenta los dos interruptores exclusivos de prueba
 (PRACTICA_NAVEGADOR y PRACTICA_RECIBO) sin asignarlos al runtime ni poner valores
 operativos; el contrato global de variables se conserva intacto.
+El foco se restaura en useLayoutEffect después del commit que retira inert y
+habilita el fieldset; requestAnimationFrame por sí solo no garantiza ese orden.
+La restauración conserva la marca de consulta vigente y solo se solicita tras
+confirmar el mismo espacio/permisos. La regresión demora 80 ms la cola host de
+React en Chromium para comprobar ese orden sin relajar las aserciones.
 
 Gobernanza R3: MP-01/AUD-01 conservación e historial, FRM-01/ERR-01 errores
 locales, A11Y-01 controles con etiquetas y ayuda nativa, VIS-01 marca heredada.
