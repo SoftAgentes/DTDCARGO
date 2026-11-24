@@ -10,8 +10,9 @@ const dinero = (centavos: number) => Number.isSafeInteger(centavos) ? new Intl.N
 function Ayuda({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return <details><summary aria-label={`Ayuda: ${titulo}`}>ⓘ {titulo}</summary><p>{children}</p></details>;
 }
-export function FacturacionPractica({ espacio, onBloqueoSalida, onReinicio }: { espacio: string; onBloqueoSalida: (bloqueada: boolean) => void; onReinicio?: () => void }) {
+export function FacturacionPractica({ espacio, onBloqueoSalida, onReinicio, solicitudDocumento }: { espacio: string; onBloqueoSalida: (bloqueada: boolean) => void; onReinicio?: () => void; solicitudDocumento?: {codigo: string; id: number} }) {
   const [vista, setVista] = useState<Vista>();
+  const solicitudAtendida = useRef<number>(0);
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const bloqueo = useRef(false);
@@ -55,8 +56,17 @@ export function FacturacionPractica({ espacio, onBloqueoSalida, onReinicio }: { 
     setSeleccion(codigo); setLineas(vista?.documento.facturas.find(f => f.codigo === codigo)?.lineas ?? []);
     setPrevia(""); setConfirmacion(null); setValidar(false);
   }
+  useEffect(() => {
+    if (!solicitudDocumento || solicitudAtendida.current === solicitudDocumento.id || !vista || ocupado) return;
+    solicitudAtendida.current = solicitudDocumento.id;
+    queueMicrotask(() => {
+      if (!vista.documento.facturas.some(f => f.codigo === solicitudDocumento.codigo)) return;
+      if (sucio) setDescarte(solicitudDocumento.codigo);
+      else { cambiarDocumento(solicitudDocumento.codigo); document.getElementById("titulo-facturacion")?.focus(); }
+    });
+  }, [solicitudDocumento, vista, ocupado]); // eslint-disable-line react-hooks/exhaustive-deps
   return <section aria-labelledby="titulo-facturacion" className={estilos.facturacion}>
-    <h2 id="titulo-facturacion">Facturación de práctica</h2>
+    <h2 id="titulo-facturacion" tabIndex={-1}>Facturación de práctica</h2>
     <p>Solo datos inventados. Tu avance se guarda en tu copia personal.</p>
     <button type="button" disabled={ocupado} onClick={() => { if (sucio) setDescarte("recargar"); else void pedir(); }}>Recargar avance y permisos</button>
     {error && !confirmacion && <p ref={avisoError} tabIndex={-1} role="alert">{error}</p>}
@@ -108,7 +118,7 @@ export function FacturacionPractica({ espacio, onBloqueoSalida, onReinicio }: { 
         onConfirm={motivo => { if (confirmacion) void pedir({accion:confirmacion,codigo:seleccion,motivo}); }} />
       <ConfirmDialog open={!!descarte} title="Descartar conceptos sin guardar" message="Los conceptos sin guardar se perderán; el documento guardado se conserva."
         confirmLabel="Descartar conceptos" pending={ocupado} onCancel={() => setDescarte(null)} onConfirm={() => {
-          if (descarte === "recargar") void pedir(); else if (descarte) cambiarDocumento(descarte);
+          if (descarte === "recargar") void pedir(); else if (descarte) { cambiarDocumento(descarte); document.getElementById("titulo-facturacion")?.focus(); }
           setDescarte(null);
         }} />
       <details><summary>Historial de esta copia · generación {vista.documento.generacion}</summary><ol>{vista.documento.eventos.map((e, i) => <li key={i}>{e.fecha}: {e.accion} · {e.codigo} {e.motivo}</li>)}</ol></details>

@@ -50,3 +50,12 @@ La operación de Consolidado representa asignación operativa de carga de Navier
 (`assignLooseCargo`), cuyo permiso es naviera; no es `updateReceiptStatusAction`
 de China, que usa cn y puede disparar autoemisión. Ambos caminos reales se
 inspeccionaron; la ayuda no equipara sus efectos financieros.
+
+## Ajustes del recorrido operativo (revisión del Director)
+Allowlist conserva los archivos existentes; se amplía el contrato de china con
+reiniciar para quien tiene edición cn o naviera, sin abrir el detalle financiero.
+El servidor relee permisos y genera la semilla financiera internamente; una RPC
+serializada compara revisiones de ambos documentos y reinicia la copia completa.
+Cancelación no envía comandos. La generación y la revisión vencen otras pestañas.
+La referencia de preorden solicita selección explícita en Facturación; si hay
+conceptos sin guardar se usa su confirmación existente antes de cambiar documento.

@@ -125,6 +125,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           "/rpc/practica_canjear":["practica_canjear",["p_huella","p_sesion"]],
           "/rpc/practica_sesion":["practica_sesion",["p_sesion"]],
           "/rpc/practica_cerrar":["practica_cerrar",["p_sesion"]],
+          "/rpc/practica_reiniciar":["practica_reiniciar",["p_sesion","p_revision","p_fin_revision","p_documento"]],
           "/rpc/practica_china":["practica_china",["p_sesion","p_revision","p_documento"]],
           "/rpc/practica_facturacion":["practica_facturacion",["p_sesion","p_revision","p_documento"]],
         };
@@ -272,6 +273,17 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect((await op(a,{espacio:otra.vista.espacio})).status).toBe(403);
     expect((await op(a,{modulo:"naviera",revision:v.revision,comando:{accion:"consolidar",envio:"PRA-EMB-001"}})).status).toBe(403);
     expect((await op(a,{revision:v.revision-1,comando})).status).toBe(409);
+    const pestana = await entrar(id);
+    expect(pestana.vista.espacio).toBe(a.vista.espacio);
+    const revisionVieja=v.revision;
+    const reiniciada=await op(a,{revision:v.revision,comando:{accion:"reiniciar",envio:"espacio"}});
+    expect(reiniciada.status).toBe(200);
+    v=await reiniciada.json();
+    expect(v.documento.generacion).toBe(2);
+    expect(JSON.stringify(v)).not.toMatch(/centavos|pagado|lineas/);
+    expect((await op(pestana,{revision:revisionVieja,comando})).status).toBe(409);
+    expect((await solicitar(prueba,"facturacion",{espacio:a.vista.espacio},{sesion:a.sesion})).status).toBe(403);
+    expect((await (await op(otra)).json()).documento.generacion).toBe(1);
     usuarios.get(id)!.role="support";
     expect((await op(a)).status).toBe(200);
     expect((await op(a,{revision:v.revision,comando})).status).toBe(403);
@@ -291,7 +303,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect(reset.status).toBe(200);
     expect((await op(a,{revision:v.revision,comando})).status).toBe(409);
     const nueva=await (await op(a)).json();
-    expect(nueva.documento.generacion).toBe(2);
+    expect(nueva.documento.generacion).toBe(3);
     expect(nueva.documento.cargas[1].estado).toBe("pendiente");
     expect((await (await op(otra)).json()).documento.generacion).toBe(1);
     usuarios.get(id)!.disabled=true;
@@ -310,7 +322,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     const fuentes = `@font-face {font-family:Nunito;src:url(/nunito.woff2)} @font-face {font-family:Sora;src:url(/sora.woff2)} :root{--font-nunito:Nunito;--font-sora:Sora} *{box-sizing:border-box} body{margin:0} button,input,select{font:inherit}`;
     const css = fuentes + tipografia + paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".css")).text;
     const browser = await chromium.launch({ executablePath:process.env.PRACTICA_CHROMIUM || chromium.executablePath(), headless:true });
-    const carpeta = resolve(tmpdir(), "sdd-0713-fase-3"); mkdirSync(carpeta, { recursive:true });
+    const carpeta = resolve(tmpdir(), process.env.PRACTICA_EVIDENCIA || "sdd-0713-fase-3"); mkdirSync(carpeta, { recursive:true });
     try {
       for (const width of [390,1280]) for (const tema of ["light","dark"]) {
         const cuentaId = usuario("warehouse", "cn");
@@ -352,6 +364,23 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Ayuda: recibir en China",{exact:true}).press("Enter");
           await esperar(p.locator('details:has(summary[aria-label="Ayuda: recibir en China"])')).toHaveAttribute("open", "");
           await p.screenshot({path:resolve(carpeta,`china-almacen-${width}${sufijo}.png`),fullPage:true});
+          const otraPestana = await contextoBrowser.newPage();
+          await otraPestana.goto(prueba + "/studio/practica");
+          await esperar(otraPestana.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
+          await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          await p.getByRole("button",{name:"Cancelar",exact:true}).click();
+          await p.reload();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
+          await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          await p.getByRole("button",{name:"Confirmar reiniciar",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          // La pestaña anterior conserva su revisión; el servidor rechaza su escritura.
+          await otraPestana.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true}).click();
+          await esperar(otraPestana.getByRole("alert")).toContainText("La práctica cambió");
+          await otraPestana.reload();
+          await esperar(otraPestana.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await otraPestana.close();
+          await p.screenshot({path:resolve(carpeta,`reinicio-almacen-${width}${sufijo}.png`),fullPage:true});
           usuarios.get(cuentaId)!.role="admin";
           await p.reload();
           await p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true}).click();
@@ -363,6 +392,17 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
           await esperar(avanzada).toContainText("Estado: consolidada");
           await p.screenshot({path:resolve(carpeta,`consolidado-${width}${sufijo}.png`),fullPage:true});
+          await p.getByLabel("Documento",{exact:true}).selectOption("PRA-FAC-002");
+          await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
+          await esperar(p.getByLabel("Documento",{exact:true})).toHaveValue("PRA-PRE-001");
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Cambio sin guardar ficticio");
+          await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
+          await esperar(p.getByRole("dialog",{name:"Descartar conceptos sin guardar"})).toBeVisible();
+          await p.getByRole("button",{name:"Cancelar",exact:true}).click();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Cambio sin guardar ficticio");
+          await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
+          await p.getByRole("button",{name:"Descartar conceptos",exact:true}).click();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Carga propuesta");
           const guardar = p.getByRole("button",{name:"Guardar conceptos",exact:true});
           await esperar(guardar).toBeEnabled();
           await p.getByRole("button",{name:"Repartir USD 300 en carga y sobrepeso",exact:true}).click();

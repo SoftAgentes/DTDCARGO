@@ -1,7 +1,7 @@
 // Documento operativo sintético; nunca contiene el detalle financiero.
 export type CargaPractica = { envio: string; cajas: string[]; cliente: string | null; preparada: boolean; preorden?: string; estado: "pendiente" | "recibida" | "consolidada"; consolidado?: string };
 export type ChinaPractica = { generacion: number; cargas: CargaPractica[]; eventos: { id: string; fecha: string; accion: string; fuente: "practica-personal"; motivo: string; antes: CargaPractica; despues: CargaPractica }[] };
-export type ComandoChina = { accion: "recibir" | "identificar" | "consolidar"; envio: string };
+export type ComandoChina = { accion: "recibir" | "identificar" | "consolidar" | "reiniciar"; envio: string };
 export function semillaChina(generacion = 1): ChinaPractica {
   return { generacion, cargas: [
     { envio: "PRA-EMB-001", cajas: ["PRA-CAJA-001", "PRA-CAJA-002"], cliente: "DTD-PRA-001", preparada: true, preorden: "PRA-PRE-001", estado: "recibida" },

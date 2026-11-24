@@ -90,10 +90,10 @@ export async function facturacionPersonal(cfg: DestinoPractica, sesion: string, 
   return { ...guardado, edicion: permiso.edicion };
 }
 
-export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espacio: string, modulo: "cn" | "naviera", revision?: number, comando?: ComandoChina) {
+export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espacio: string, modulo: "cn" | "naviera", revision?: number, comando?: ComandoChina): Promise<{ revision: number; documento: ChinaPractica | null; generacion: number; edicion: boolean }> {
   const acceso = await consultarPractica(cfg, sesion, espacio);
   const permiso = acceso?.permisos.find(p => p.id === modulo);
-  if (!permiso || (comando && (!permiso.edicion || (comando.accion === "consolidar" ? modulo !== "naviera" : modulo !== "cn")))) throw new Error("No tienes permiso para esta operación.");
+  if (!permiso || (comando && (!permiso.edicion || (comando.accion !== "reiniciar" && (comando.accion === "consolidar" ? modulo !== "naviera" : modulo !== "cn"))))) throw new Error("No tienes permiso para esta operación.");
   type Registro = { revision: number; documento: ChinaPractica | null; generacion: number };
   const leer = () => rpc(cfg, "china", { p_sesion: huella(sesion) }) as Promise<Registro>;
   let registro = await leer();
@@ -104,8 +104,19 @@ export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espaci
   if (!registro.documento) throw new Error("La práctica cambió. Recarga antes de continuar.");
   if (!comando) return { ...registro, edicion: permiso.edicion };
   if (registro.revision !== revision) throw new Error("La práctica cambió. Recarga antes de continuar.");
+  if (comando.accion === "reiniciar") {
+    await reiniciarDesdeOperacion(cfg, sesion, registro.revision);
+    return chinaPersonal(cfg, sesion, espacio, modulo);
+  }
   const documento = aplicarChina(registro.documento, comando);
   const guardado = await rpc(cfg, "china", { p_sesion: huella(sesion), p_revision: revision, p_documento: documento });
   if (!guardado) throw new Error("La práctica cambió. Recarga antes de continuar.");
   return { ...guardado as Registro, edicion: permiso.edicion };
+}
+
+export async function reiniciarDesdeOperacion(cfg: DestinoPractica, sesion: string, revision: number) {
+  const previo = await rpc(cfg, "facturacion", { p_sesion: huella(sesion) }) as { revision: number; documento: FacturacionPractica } | null;
+  const documento = aplicarFactura(previo?.documento ?? semillaFacturacion(), { accion: "reiniciar", codigo: "espacio" });
+  const guardado = await rpc(cfg, "reiniciar", { p_sesion: huella(sesion), p_revision: revision, p_fin_revision: previo?.revision ?? -1, p_documento: documento });
+  if (!guardado) throw new Error("La práctica cambió. Recarga antes de continuar.");
 }
