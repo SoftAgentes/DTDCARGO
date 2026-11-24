@@ -20,6 +20,8 @@ import { canAccessModule, canEditModule } from "@/lib/studio/rbac";
 import { grantsFromRows } from "@/lib/studio/user-module-grants-queries";
 import { moduleCoverage } from "@/lib/studio/user-module-grants";
 import { permisosDePractica } from "../identidad";
+import { CODIGOS_CHINA, COMPRA_CHINA, CONSOLIDADOS_CHINA, type ComandoEjercicioChina } from "../ejercicio-china";
+import type { ComandoDestino } from "../destino";
 
 const real = "https://studio.example.test", prueba = "https://practica.example.test", datos = "https://datos.example.test";
 const clave = "a".repeat(64), canal = "b".repeat(64);
@@ -146,6 +148,104 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     });
   }, 60000);
   afterAll(async () => { vi.unstubAllGlobals(); vi.restoreAllMocks(); await db?.close(); });
+
+  async function prepararOrigenDestino(completo=true) {
+    const id=usuario("admin","all","ve"), cuenta=await entrar(id);
+    const origen=async (operacion?:ComandoEjercicioChina,revision?:number)=>solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",revision,
+      ...(operacion ? {comando:{accion:"ejercicio",envio:COMPRA_CHINA,operacion}} : {})},{sesion:cuenta.sesion});
+    let v=await (await origen()).json();
+    const hacer=async (operacion:ComandoEjercicioChina)=>{const r=await origen(operacion,v.revision);expect(r.status).toBe(200);v=await r.json();return v;};
+    await hacer({id:randomUUID(),accion:"recibir",codigo:CODIGOS_CHINA[0],cantidad:3});
+    const recepcion=v.documento.ejercicio.recepciones[0].id;
+    await hacer({id:randomUUID(),accion:"fragil",recepcion,activo:true,motivo:"Manejo físico ficticio"});
+    await hacer({id:randomUUID(),accion:"marca",recepcion,motivo:"MOTIVO_INTERNO_CN_NO_DEVOLVER_A_VE"});
+    await hacer({id:randomUUID(),accion:"cargar",codigo:CODIGOS_CHINA[0],cantidad:2,consolidado:CONSOLIDADOS_CHINA[0],ancho:1});
+    if (completo) {
+      await hacer({id:randomUUID(),accion:"recibir",codigo:CODIGOS_CHINA[3],cantidad:1});
+      await hacer({id:randomUUID(),accion:"cargar",codigo:CODIGOS_CHINA[2],cantidad:2,consolidado:CONSOLIDADOS_CHINA[1],ancho:2});
+    }
+    const destinoOp=(etapa:"shipments"|"ve",consolidado:string,cmd?:ComandoDestino,revision?:number)=>solicitar(prueba,"china",{
+      espacio:cuenta.vista.espacio,etapa,consolidado,revision,...(cmd ? {destino:cmd} : {}),
+    },{sesion:cuenta.sesion});
+    const raw=async()=>{const r=await db.query<{valor:{revision:number;documento:import("../china").ChinaPractica}}>(
+      "select public.practica_china($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,createHash("sha256").update(cuenta.sesion).digest("hex")]);return r.rows[0].valor;};
+    return {id,cuenta,origen,destinoOp,raw};
+  }
+
+  it("conecta dos parciales por caja, filtra Frágil en VE y resuelve observación sin tocar facturas",async()=>{
+    const e=await prepararOrigenDestino(),[a,b]=CONSOLIDADOS_CHINA;
+    const fin=()=>solicitar(prueba,"facturacion",{espacio:e.cuenta.vista.espacio},{sesion:e.cuenta.sesion});
+    const financiera=await (await fin()).json();
+    const leer=async(etapa:"shipments"|"ve",c:string)=>{const r=await e.destinoOp(etapa,c);expect(r.status).toBe(200);return r.json();};
+    let v=await leer("shipments",a);
+    expect(v.cajas.map((c:{codigo:string})=>c.codigo)).toEqual(CODIGOS_CHINA.slice(0,2));
+    expect(v.cajas.every((c:{indicadores:{codigo:string}[]})=>c.indicadores.some(i=>i.codigo==="marca_sin_autorizacion"))).toBe(true);
+    const fisica=await leer("ve",b);
+    expect(fisica.cajas.map((c:{codigo:string})=>c.codigo)).toEqual(CODIGOS_CHINA.slice(2));
+    expect(fisica.cajas.map((c:{indicadores:{codigo:string}[]})=>c.indicadores.map(i=>i.codigo))).toEqual([["fragil"],[]]);
+    for (const datos of [v,fisica]) {
+      const texto=JSON.stringify(datos);
+      for (const prohibido of ["MOTIVO_INTERNO_CN_NO_DEVOLVER_A_VE","tareas","eventos","ejercicio","PRA-CARTA-001"]) expect(texto).not.toContain(prohibido);
+    }
+    const actuar=async(etapa:"shipments"|"ve",c:string,accion:ComandoDestino["accion"],extra:Partial<ComandoDestino>={})=>{
+      v=await leer(etapa,c);const r=await e.destinoOp(etapa,c,{id:randomUUID(),accion,consolidado:c,...extra},v.revision);expect(r.status).toBe(200);v=await r.json();return v;
+    };
+    await actuar("shipments",a,"embarcar"); await actuar("ve",a,"registrar_llegada");
+    await actuar("shipments",a,"abrir_incidencia",{motivo:"Observación aduanal ficticia de destino"});
+    expect((await e.destinoOp("ve",a,{id:randomUUID(),accion:"recibir_caja",consolidado:a,caja:CODIGOS_CHINA[0]},v.revision)).status).toBe(409);
+    usuarios.get(e.id)!.role="warehouse"; usuarios.get(e.id)!.region="cn";
+    const resolver={id:randomUUID(),accion:"resolver_incidencia" as const,consolidado:a,motivo:"Revisión logística ficticia completada"};
+    expect((await e.destinoOp("ve",a,resolver,v.revision)).status).toBe(403);
+    usuarios.get(e.id)!.role="operations"; usuarios.get(e.id)!.region="ve";
+    v=await leer("shipments",a);
+    const resuelta=await e.destinoOp("shipments",a,resolver,v.revision);expect(resuelta.status).toBe(200);
+    const sinMotivo=await leer("ve",a);expect(JSON.stringify(sinMotivo)).not.toContain(resolver.motivo);
+    const recibir={id:randomUUID(),accion:"recibir_caja" as const,consolidado:a,caja:CODIGOS_CHINA[0]};
+    const dobles=await Promise.all([e.destinoOp("ve",a,recibir,sinMotivo.revision),e.destinoOp("ve",a,recibir,sinMotivo.revision)]);
+    expect(dobles.map(r=>r.status)).toEqual([200,200]);
+    await actuar("ve",a,"recibir_caja",{caja:CODIGOS_CHINA[1]});
+    expect(v.viaje.estado).toBe("recepcion_completa");expect((await leer("ve",b)).viaje).toBeNull();
+    await actuar("shipments",b,"embarcar"); await actuar("ve",b,"registrar_llegada");
+    await actuar("ve",b,"recibir_caja",{caja:CODIGOS_CHINA[2]});
+    const antesB=structuredClone(v.viaje);
+    const repetida=await e.destinoOp("ve",a,{...recibir,id:randomUUID()},0);expect(repetida.status).toBe(200);
+    expect((await leer("ve",b)).viaje).toEqual(antesB);
+    await actuar("ve",b,"recibir_caja",{caja:CODIGOS_CHINA[3]});
+    expect(v.viaje.estado).toBe("recepcion_completa");
+    const raw=await e.raw();expect(raw.documento.destino?.eventos.filter(x=>x.accion==="recibir_caja")).toHaveLength(4);
+    usuarios.get(e.id)!.role="admin";
+    expect((await (await fin()).json()).documento).toEqual(financiera.documento);
+    expect(raw.documento.ejercicio?.compra).toBe(COMPRA_CHINA);
+    const otra=await entrar(usuario("admin"));
+    expect((await solicitar(prueba,"china",{espacio:otra.vista.espacio,etapa:"ve",consolidado:a},{sesion:e.cuenta.sesion})).status).toBe(403);
+  });
+
+  it("el CAS único fija A contra estibas tardías y no congela snapshots que perdieron la carrera",async()=>{
+    const [a]=CONSOLIDADOS_CHINA;
+    const e=await prepararOrigenDestino(false);
+    const antes=await (await e.destinoOp("shipments",a)).json();
+    const embarcar={id:randomUUID(),accion:"embarcar" as const,consolidado:a};
+    expect((await e.destinoOp("shipments",a,embarcar,antes.revision)).status).toBe(200);
+    const cargar={id:randomUUID(),accion:"cargar" as const,codigo:CODIGOS_CHINA[2],cantidad:1,consolidado:a,ancho:1};
+    expect((await e.origen(cargar,antes.revision)).status).toBe(409);
+    const vigente=await (await e.origen()).json();
+    expect((await e.origen(cargar,vigente.revision)).status).toBe(409);
+    const raw=await e.raw();
+    expect(raw.documento.ejercicio?.cajas[2].estiba).toBeUndefined();
+    expect(raw.documento.destino?.viajes[0].cajas).toEqual(CODIGOS_CHINA.slice(0,2));
+    const primeroOrigen=await prepararOrigenDestino(false);
+    const viejo=await (await primeroOrigen.destinoOp("shipments",a)).json();
+    expect((await primeroOrigen.origen({...cargar,id:randomUUID()},viejo.revision)).status).toBe(200);
+    expect((await primeroOrigen.destinoOp("shipments",a,{...embarcar,id:randomUUID()},viejo.revision)).status).toBe(409);
+    expect((await primeroOrigen.raw()).documento.destino).toBeUndefined();
+    const carrera=await prepararOrigenDestino(false);
+    const inicio=await (await carrera.destinoOp("shipments",a)).json();
+    const resultados=await Promise.all([carrera.destinoOp("shipments",a,{...embarcar,id:randomUUID()},inicio.revision),carrera.origen({...cargar,id:randomUUID()},inicio.revision)]);
+    expect(resultados.map(r=>r.status).sort()).toEqual([200,409]);
+    const final=await carrera.raw();
+    if (final.documento.destino) expect(final.documento.destino.viajes[0].cajas).toEqual(final.documento.ejercicio?.cajas.filter(c=>c.estiba?.consolidado===a).map(c=>c.codigo));
+    else expect(final.documento.ejercicio?.cajas.filter(c=>c.estiba?.consolidado===a)).toHaveLength(3);
+  });
 
   it("indisponibilidad de origen/base y respuestas inválidas no se convierten en revocación", async () => {
     const id = usuario("accounting"); const cuenta = await entrar(id);
