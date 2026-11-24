@@ -9,6 +9,7 @@ import { referenciaPrivada, abrirReferencia, permisosVigentes } from "@/lib/stud
 import { canalValido, emitirEnDestino, reservar, canjear, consultarPractica, cerrar, espacioDeSesion } from "@/lib/studio/practica/servidor";
 import { facturacionPersonal } from "@/lib/studio/practica/servidor";
 import type { ComandoFactura } from "@/lib/studio/practica/facturacion";
+import { leerCuerpoFinanciero, MAX_CUERPO_ACCESO } from "@/lib/studio/practica/cuerpo";
 
 export const runtime = "nodejs";
 const opcionesCookie = { httpOnly: true, secure: true, sameSite: "strict", path: "/" } as const;
@@ -25,8 +26,13 @@ export async function POST(req: NextRequest, context: { params: Promise<{ operac
   const pares = operacion === "reservar" || operacion === "permisos";
   if (pares ? !canalValido(req.headers.get("authorization"), cfg.canal) : req.headers.get("origin") !== local) return json(null, 403);
   if (req.headers.get("content-type")?.split(";")[0] !== "application/json") return json(null, 415);
-  const datos = await readJsonBody<Record<string, unknown>>(req, 2048);
-  if (!datos.ok) return json(null, datos.status);
+  const financiera = cfg.modo === "destino" && operacion === "facturacion";
+  const datos = financiera
+    ? await leerCuerpoFinanciero(req)
+    : await readJsonBody<Record<string, unknown>>(req, MAX_CUERPO_ACCESO);
+  if (!datos.ok) return json(financiera && datos.status === 413
+    ? { error: "El contenido supera 24 KiB. Acorta los conceptos o el motivo y vuelve a guardar; tus cambios siguen en el editor." }
+    : null, datos.status);
   if (!datos.body || typeof datos.body !== "object" || Array.isArray(datos.body)) return json(null, 400);
   try {
     if (cfg.modo === "origen") {

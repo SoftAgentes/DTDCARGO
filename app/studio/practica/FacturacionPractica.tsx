@@ -5,32 +5,45 @@ import { totalPractica, erroresLineaPractica, type FacturacionPractica as Datos,
 import estilos from "./practica.module.css";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 type Vista = { revision: number; documento: Datos; edicion: boolean };
 const dinero = (centavos: number) => Number.isSafeInteger(centavos) ? new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" }).format(centavos / 100) : "Importe no válido";
 function Ayuda({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return <details><summary aria-label={`Ayuda: ${titulo}`}>ⓘ {titulo}</summary><p>{children}</p></details>;
 }
-export function FacturacionPractica({ espacio, onBloqueoSalida }: { espacio: string; onBloqueoSalida: (bloqueada: boolean) => void }) {
+export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSalida }: { espacio: string; suspendida?: boolean; onBloqueoSalida: (bloqueada: boolean) => void }) {
   const [vista, setVista] = useState<Vista>();
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const bloqueo = useRef(false);
   const avisoError = useRef<HTMLParagraphElement>(null);
+  const formulario = useRef<HTMLFormElement>(null);
   const [seleccion, setSeleccion] = useState("PRA-PRE-001");
   const [lineas, setLineas] = useState<LineaPractica[]>([]);
   const [confirmacion, setConfirmacion] = useState<"reiniciar" | "anular" | null>(null);
   const [descarte, setDescarte] = useState<string | null>(null);
   const [previa, setPrevia] = useState("");
   const [validar, setValidar] = useState(false);
+  const [textoPendiente, setTextoPendiente] = useState(false);
+  const [versionEditor, setVersionEditor] = useState(0);
+  const secuenciaLinea = useRef(0);
+  const [identificadores, setIdentificadores] = useState<number[]>([]);
+  function nuevasIdentidades(cantidad: number) { return Array.from({length:cantidad}, () => ++secuenciaLinea.current); }
   async function pedir(comando?: ComandoFactura) {
-    if (bloqueo.current) return;
+    if (bloqueo.current || suspendida) return;
     bloqueo.current = true; setOcupado(true); setError("");
     try {
       const res = await fetch(API_PRACTICA + "facturacion", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", redirect: "error", body: JSON.stringify({ espacio, revision: vista?.revision, comando }) });
+      if (res.status === 401 || res.status === 403) {
+        setVista(undefined); setLineas([]); setPrevia(""); setConfirmacion(null); setTextoPendiente(false);
+      }
+      if (res.status === 413) throw new Error("El contenido supera 24 KiB. Acorta los conceptos o el motivo y vuelve a guardar; tus cambios siguen en el editor.");
       const datos = await res.json();
       if (!res.ok) throw new Error(datos?.error ?? "No se pudo consultar la práctica.");
       setVista(datos); setPrevia(""); setConfirmacion(null);
-      setLineas(datos.documento.facturas.find((f: { codigo: string }) => f.codigo === seleccion)?.lineas ?? []);
+      const cargadas = datos.documento.facturas.find((f: { codigo: string }) => f.codigo === seleccion)?.lineas ?? [];
+      setLineas(cargadas); setIdentificadores(nuevasIdentidades(cargadas.length));
+      setTextoPendiente(false); setVersionEditor(v => v + 1);
     } catch (e) { if (!comando) setVista(undefined); const mensaje = e instanceof Error ? e.message : "Servicio indisponible."; setError(mensaje); return { error: mensaje }; }
     finally { bloqueo.current = false; setOcupado(false); }
   }
@@ -38,7 +51,7 @@ export function FacturacionPractica({ espacio, onBloqueoSalida }: { espacio: str
   useEffect(() => { void pedir(); }, [espacio]); // eslint-disable-line react-hooks/exhaustive-deps
   const factura = vista?.documento.facturas.find(f => f.codigo === seleccion);
   const editable = !!vista?.edicion && factura?.estado === "borrador";
-  const sucio = !!factura && JSON.stringify(lineas) !== JSON.stringify(factura.lineas);
+  const sucio = !!factura && (textoPendiente || JSON.stringify(lineas) !== JSON.stringify(factura.lineas));
   useEffect(() => { onBloqueoSalida(ocupado || sucio); return () => onBloqueoSalida(false); }, [ocupado, sucio, onBloqueoSalida]);
   useEffect(() => { if (error) avisoError.current?.focus(); }, [error]);
   useEffect(() => {
@@ -48,11 +61,22 @@ export function FacturacionPractica({ espacio, onBloqueoSalida }: { espacio: str
   }, [sucio]);
   const actuar = (accion: ComandoFactura["accion"]) => {
     if (accion === "guardar") setValidar(true);
+    if (accion === "guardar" || accion === "emitir") {
+      if (!formulario.current?.reportValidity() || !lineas.length || lineas.some(l => Object.values(erroresLineaPractica(l)).some(Boolean))) {
+        const mensaje = "Revisa los campos señalados. Conservamos el texto para que puedas corregirlo.";
+        setError(mensaje); return Promise.resolve({error:mensaje});
+      }
+    }
     return pedir({ accion, codigo: seleccion, lineas });
   };
   function cambiarDocumento(codigo: string) {
-    setSeleccion(codigo); setLineas(vista?.documento.facturas.find(f => f.codigo === codigo)?.lineas ?? []);
+    const cargadas = vista?.documento.facturas.find(f => f.codigo === codigo)?.lineas ?? [];
+    setSeleccion(codigo); setLineas(cargadas); setIdentificadores(nuevasIdentidades(cargadas.length));
     setPrevia(""); setConfirmacion(null); setValidar(false);
+    setTextoPendiente(false); setVersionEditor(v => v + 1);
+  }
+  function reemplazarLineas(nuevas: LineaPractica[]) {
+    setLineas(nuevas); setIdentificadores(nuevasIdentidades(nuevas.length)); setTextoPendiente(true); setVersionEditor(v => v + 1);
   }
   return <section aria-labelledby="titulo-facturacion" className={estilos.facturacion}>
     <h2 id="titulo-facturacion">Facturación de práctica</h2>
@@ -66,22 +90,24 @@ export function FacturacionPractica({ espacio, onBloqueoSalida }: { espacio: str
       <p><strong>{factura.codigo}</strong> · Embarque {factura.embarque} · {factura.estado}</p>
       <Ayuda titulo="Revisar el documento">PRA-PRE-001 comienza como preorden pendiente y PRA-FAC-002 comienza emitida. Revisa arriba el estado actual de cada documento. Pertenecen a embarques inventados distintos.</Ayuda>
       {!vista.edicion && <p>Tu permiso actual es de consulta.</p>}
-      <fieldset disabled={!editable || ocupado} aria-describedby="reglas-conceptos"><legend>Conceptos de la factura</legend>
+      <form ref={formulario} onSubmit={e => e.preventDefault()} onInputCapture={() => { setTextoPendiente(true); setError(""); }}>
+      <fieldset disabled={!editable || ocupado || suspendida} aria-describedby="reglas-conceptos"><legend>Conceptos de la factura</legend>
         <p id="reglas-conceptos">Concepto, cantidad y precio son obligatorios. Cantidad entera; precio con hasta dos decimales.</p>
-        {lineas.map((l, i) => <div key={i} className={estilos.linea}>
+        {lineas.map((l, i) => <div key={identificadores[i]} className={estilos.linea}>
           <label>Concepto {i + 1}<input aria-invalid={validar && !!erroresLineaPractica(l).concepto} aria-describedby={validar && erroresLineaPractica(l).concepto ? `error-${i}-concepto` : undefined} maxLength={100} value={l.concepto} onChange={e => setLineas(lineas.map((v, n) => n === i ? { ...v, concepto: e.target.value } : v))} /></label>
-          <label>Cantidad {i + 1}<input aria-invalid={validar && !!erroresLineaPractica(l).cantidad} aria-describedby={validar && erroresLineaPractica(l).cantidad ? `error-${i}-cantidad` : undefined} type="number" min="1" step="1" value={l.cantidad} onChange={e => setLineas(lineas.map((v, n) => n === i ? { ...v, cantidad: Number(e.target.value) } : v))} /></label>
-          <label>Precio USD {i + 1}<input aria-invalid={validar && !!erroresLineaPractica(l).centavos} aria-describedby={validar && erroresLineaPractica(l).centavos ? `error-${i}-centavos` : undefined} type="number" min="0.01" step="0.01" value={Number.isFinite(l.centavos) ? l.centavos / 100 : ""} onChange={e => { const valor = e.target.value; setLineas(lineas.map((v, n) => n === i ? { ...v, centavos: /^\d+(\.\d{0,2})?$/.test(valor) ? Math.round(Number(valor) * 100) : NaN } : v)); }} /></label>
+          <label>Cantidad {i + 1}<NumericInput key={`cantidad-${seleccion}-${versionEditor}-${identificadores[i]}`} aria-label={`Cantidad ${i + 1}`} type="count" required min={1} max={10000} decimales={0} value={Number.isFinite(l.cantidad) ? l.cantidad : null} aria-invalid={validar && !!erroresLineaPractica(l).cantidad} aria-describedby={validar && erroresLineaPractica(l).cantidad ? `error-${i}-cantidad` : undefined} onChange={n => setLineas(lineas.map((v, pos) => pos === i ? {...v,cantidad:n ?? NaN} : v))} /></label>
+          <label>Precio USD {i + 1}<NumericInput key={`precio-${seleccion}-${versionEditor}-${identificadores[i]}`} aria-label={`Precio USD ${i + 1}`} type="currency" currency="USD" required min={0.01} max={1000000} decimales={2} value={Number.isFinite(l.centavos) ? l.centavos / 100 : null} aria-invalid={validar && !!erroresLineaPractica(l).centavos} aria-describedby={validar && erroresLineaPractica(l).centavos ? `error-${i}-centavos` : undefined} onChange={n => setLineas(lineas.map((v, pos) => pos === i ? {...v,centavos:n === null ? NaN : Math.round(n * 100)} : v))} /></label>
           <output>Subtotal: {dinero(l.cantidad * l.centavos)}</output>
           {validar && Object.entries(erroresLineaPractica(l)).map(([campo, texto]) => texto && <p id={`error-${i}-${campo}`} key={campo} role="alert">Concepto {i + 1}: {texto}</p>)}
-          <button type="button" onClick={() => setLineas(lineas.filter((_, n) => n !== i))}>Quitar concepto {i + 1}</button>
+          <button type="button" onClick={() => { setLineas(lineas.filter((_, n) => n !== i)); setIdentificadores(identificadores.filter((_, n) => n !== i)); }}>Quitar concepto {i + 1}</button>
         </div>)}
-        <button type="button" onClick={() => setLineas([{ concepto: "Carga por CBM", cantidad: 1, centavos: 25000 }, { concepto: "Sobrepeso", cantidad: 1, centavos: 5000 }])}>Repartir USD 300 en carga y sobrepeso</button>
-        <button type="button" onClick={() => setLineas([{ concepto: "Carga por CBM", cantidad: 1, centavos: 20000 }, { concepto: "Sobrepeso", cantidad: 1, centavos: 5000 }, { concepto: "Artículo elegido", cantidad: 1, centavos: 5000 }])}>Repartir USD 300 en tres conceptos</button>
-        <button type="button" onClick={() => setLineas([...lineas, { concepto: "", cantidad: 1, centavos: 0 }])}>Agregar artículo elegido por ti</button>
+        <button type="button" onClick={() => reemplazarLineas([{ concepto: "Carga por CBM", cantidad: 1, centavos: 25000 }, { concepto: "Sobrepeso", cantidad: 1, centavos: 5000 }])}>Repartir USD 300 en carga y sobrepeso</button>
+        <button type="button" onClick={() => reemplazarLineas([{ concepto: "Carga por CBM", cantidad: 1, centavos: 20000 }, { concepto: "Sobrepeso", cantidad: 1, centavos: 5000 }, { concepto: "Artículo elegido", cantidad: 1, centavos: 5000 }])}>Repartir USD 300 en tres conceptos</button>
+        <button type="button" onClick={() => { setLineas([...lineas, { concepto: "", cantidad: 1, centavos: 0 }]); setIdentificadores([...identificadores, ...nuevasIdentidades(1)]); }}>Agregar artículo elegido por ti</button>
         <p>Total propuesto: <output>{dinero(totalPractica(lineas))}</output></p>
         <ActionButton idleLabel="Guardar conceptos" loadingLabel="Guardando conceptos…" variant="primary" size="default" onAction={() => actuar("guardar")} />
       </fieldset>
+      </form>
       {sucio && <><p>Guarda o descarta los conceptos antes de salir de la práctica.</p><button type="button" disabled={ocupado} onClick={() => setDescarte(seleccion)}>Descartar conceptos sin guardar</button></>}
       <Ayuda titulo="Corregir y agregar">Repartir conserva USD 300: carga por CBM USD 250 y sobrepeso USD 50. Agregar un artículo suma un cobro al total. Guarda los conceptos antes de emitir. Este caso usa cantidades enteras y no incluye impuestos.</Ayuda>
       <p>Total guardado: {dinero(totalPractica(factura.lineas))} · Pago ficticio: {dinero(factura.pagado)} · Saldo: {dinero(factura.estado === "anulada" ? 0 : totalPractica(factura.lineas) - factura.pagado)}</p>
