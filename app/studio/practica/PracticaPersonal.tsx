@@ -1,25 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { API_PRACTICA, AVISO_LISTO, AVISO_PASE, AVISO_ABIERTA, esToken, MODULOS_PRACTICA, type VistaPractica } from "@/lib/studio/practica/contrato";
+import { API_PRACTICA, AVISO_LISTO, AVISO_PASE, AVISO_ABIERTA, esToken, esVistaPractica, MODULOS_PRACTICA, type VistaPractica } from "@/lib/studio/practica/contrato";
 import estilos from "./practica.module.css";
 import { FacturacionPractica } from "./FacturacionPractica";
 import { ChinaPractica } from "./ChinaPractica";
 import type { ResumenDocumentoPractica } from "@/lib/studio/practica/facturacion";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 
 const ESPACIO_DE_PESTANA = "dtd-practica-espacio";
+class AccesoDenegado extends Error {}
 
 async function operacion(nombre: string, body: object = {}, signal?: AbortSignal) {
   const respuesta = await fetch(API_PRACTICA + nombre, {
     method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
     headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal,
   });
-  if (!respuesta.ok) throw new Error();
+  if (respuesta.status === 401 || respuesta.status === 403) throw new AccesoDenegado();
+  if (!respuesta.ok) throw new Error("Comprobación indisponible");
   return respuesta.json();
 }
 
 export function PracticaPersonal({ real }: { real: string }) {
   const pagina = useRef<HTMLElement>(null);
+  const editor = useRef<HTMLDivElement>(null);
   const [vista, setVista] = useState<VistaPractica | null>(null);
   const [mensaje, setMensaje] = useState("Comprobando tu acceso…");
   const [saliendo, setSaliendo] = useState(false);
@@ -35,6 +39,11 @@ export function PracticaPersonal({ real }: { real: string }) {
   const bloqueoFinanciero = useCallback((activo: boolean) => cambiarBloqueo("financiero", activo), [cambiarBloqueo]);
   const bloqueoOperativo = useCallback((activo: boolean) => cambiarBloqueo("operativo", activo), [cambiarBloqueo]);
   const [revalidando, setRevalidando] = useState(true);
+  const [falloComprobacion, setFalloComprobacion] = useState(false);
+  const [confirmarSalida, setConfirmarSalida] = useState(false);
+  const [cierrePendiente, setCierrePendiente] = useState(false);
+  const consultaActual = useRef<AbortController | null>(null);
+  const salidaEnCurso = useRef(false);
   const vistaActual = useRef<VistaPractica | null>(null);
   const focoAnterior = useRef<HTMLElement | null>(null);
   const ultimaConsulta = useRef(0);
@@ -50,14 +59,23 @@ export function PracticaPersonal({ real }: { real: string }) {
     return () => { observador.disconnect(); window.removeEventListener("resize", reservar); };
   }, []);
   const consultar = useCallback(async (signal: AbortSignal) => {
+    if (salidaEnCurso.current) return;
     const turno = ++ultimaConsulta.current;
-    if (document.activeElement instanceof HTMLElement && pagina.current?.contains(document.activeElement)) focoAnterior.current = document.activeElement;
-    setRevalidando(true);
+    consultaActual.current?.abort();
+    const consulta = new AbortController(); consultaActual.current = consulta;
+    const alCancelar = () => consulta.abort();
+    signal.addEventListener("abort", alCancelar, {once:true});
+    if (signal.aborted) consulta.abort();
+    if (document.activeElement instanceof HTMLElement && editor.current?.contains(document.activeElement)) focoAnterior.current = document.activeElement;
+    setRevalidando(true); setFalloComprobacion(false); setMensaje("");
     try {
       const espacio = sessionStorage.getItem(ESPACIO_DE_PESTANA);
-      const datos = await operacion("estado", { espacio }, signal);
-      if (!signal.aborted && turno === ultimaConsulta.current) {
-        const mismaVista = vistaActual.current?.espacio === datos.espacio && JSON.stringify(vistaActual.current.permisos) === JSON.stringify(datos.permisos);
+      const datos: unknown = await operacion("estado", { espacio }, consulta.signal);
+      if (!esVistaPractica(datos)) throw new Error("Respuesta de práctica inválida");
+      if (!consulta.signal.aborted && turno === ultimaConsulta.current) {
+        if (datos.espacio !== espacio) throw new AccesoDenegado();
+        const anterior = vistaActual.current;
+        const mismaVista = anterior !== null && anterior.espacio === datos.espacio && JSON.stringify(anterior.permisos) === JSON.stringify(datos.permisos);
         vistaActual.current = datos;
         setVista(datos); setMensaje(""); setRevalidando(false);
         if (mismaVista) requestAnimationFrame(() => {
@@ -65,13 +83,18 @@ export function PracticaPersonal({ real }: { real: string }) {
         });
         else focoAnterior.current = null;
       }
-    } catch {
-      if (!signal.aborted && turno === ultimaConsulta.current) {
-        setVista(null);
-        vistaActual.current = null; focoAnterior.current = null; setRevalidando(false);
-        setMensaje("Para abrir tu práctica, entra desde Mi perfil en el Studio real.");
+    } catch (error) {
+      if (!consulta.signal.aborted && turno === ultimaConsulta.current) {
+        if (error instanceof AccesoDenegado) {
+          setVista(null); vistaActual.current = null; focoAnterior.current = null;
+          setRevalidando(false); setSalidaBloqueada(false);
+          setMensaje("Para abrir tu práctica, entra desde Mi perfil en el Studio real.");
+        } else {
+          setFalloComprobacion(true);
+          setMensaje("No pudimos comprobar tu acceso. Tu edición sigue en memoria, oculta y bloqueada hasta verificar identidad y permisos.");
+        }
       }
-    }
+    } finally { signal.removeEventListener("abort", alCancelar); }
   }, []);
 
   useEffect(() => {
@@ -84,6 +107,7 @@ export function PracticaPersonal({ real }: { real: string }) {
       canjeado = true;
       try {
         const datos = await operacion("canjear", { pase: evento.data.pase }, control.signal);
+        if (!esVistaPractica(datos)) throw new Error("Respuesta de práctica inválida");
         if (control.signal.aborted) return;
         sessionStorage.setItem(ESPACIO_DE_PESTANA, datos.espacio);
         setVista(datos);
@@ -99,7 +123,7 @@ export function PracticaPersonal({ real }: { real: string }) {
       if (evento.persisted) void consultar(control.signal);
     }
     function volverAVer() {
-      if (document.visibilityState === "hidden" && document.activeElement instanceof HTMLElement && pagina.current?.contains(document.activeElement)) focoAnterior.current = document.activeElement;
+      if (document.visibilityState === "hidden" && document.activeElement instanceof HTMLElement && editor.current?.contains(document.activeElement)) focoAnterior.current = document.activeElement;
       if (document.visibilityState === "visible" && !window.opener) void consultar(control.signal);
     }
     document.addEventListener("visibilitychange", volverAVer);
@@ -109,23 +133,32 @@ export function PracticaPersonal({ real }: { real: string }) {
     else queueMicrotask(() => { if (!control.signal.aborted) void consultar(control.signal); });
     return () => {
       control.abort();
+      consultaActual.current?.abort();
       document.removeEventListener("visibilitychange", volverAVer);
       window.removeEventListener("pageshow", restaurar);
       window.removeEventListener("message", recibir);
     };
   }, [real, consultar]);
 
-  async function salir() {
-    if (bloqueos.current.financiero || bloqueos.current.operativo || saliendo || revalidando) return;
+  async function salir(descartar = false) {
+    if (bloqueos.current.operativo || saliendo || (!descartar && (bloqueos.current.financiero || revalidando))) return;
+    salidaEnCurso.current = true;
+    ++ultimaConsulta.current; consultaActual.current?.abort();
+    setConfirmarSalida(false);
+    setVista(null); vistaActual.current = null; focoAnterior.current = null;
+    setSalidaBloqueada(false); setRevalidando(false); setFalloComprobacion(false);
     setSaliendo(true);
+    setCierrePendiente(false);
     try {
       const espacio = sessionStorage.getItem(ESPACIO_DE_PESTANA);
       if (espacio) await operacion("salir", { espacio });
       sessionStorage.removeItem(ESPACIO_DE_PESTANA);
       window.location.replace(real + "/studio/dashboard");
     } catch {
+      salidaEnCurso.current = false;
       setSaliendo(false);
-      setMensaje("No se pudo cerrar la práctica. Tu avance está guardado. Vuelve a intentarlo.");
+      setCierrePendiente(true);
+      setMensaje("No se pudo confirmar el cierre remoto. La edición sin guardar se descartó; el avance guardado permanece. Puedes reintentar el cierre o volver al Studio real; la sesión de práctica podría seguir abierta hasta vencer.");
     }
   }
 
@@ -133,15 +166,26 @@ export function PracticaPersonal({ real }: { real: string }) {
     <main ref={pagina} className={estilos.pagina}>
       <header className={estilos.franja}>
         <strong>Modo de prueba · Datos inventados</strong>
-        <button type="button" className="studio-btn studio-btn-dark" onClick={salir} disabled={saliendo || salidaBloqueada || revalidando} title={salidaBloqueada ? "Espera la operación o guarda o descarta tus conceptos." : undefined}>
+        <button type="button" className="studio-btn studio-btn-dark" onClick={() => void salir()} disabled={saliendo || salidaBloqueada || revalidando} title={salidaBloqueada ? "Espera la operación o guarda o descarta tus conceptos." : undefined}>
           {saliendo ? "Volviendo…" : "Volver al Studio real"}
         </button>
       </header>
       <section className={estilos.contenido} aria-labelledby="titulo-practica">
         <h1 id="titulo-practica">Mi práctica</h1>
         {mensaje && <p role="status">{mensaje}</p>}
-        {revalidando && <p role="status">Comprobando identidad y permisos…</p>}
-        {vista && <div inert={revalidando} style={{ visibility: revalidando ? "hidden" : "visible" }}>
+        {cierrePendiente && <button type="button" disabled={bloqueos.current.operativo} onClick={() => {
+          if (bloqueos.current.operativo) return;
+          salidaEnCurso.current = true;
+          ++ultimaConsulta.current; consultaActual.current?.abort();
+          sessionStorage.removeItem(ESPACIO_DE_PESTANA);
+          window.location.replace(real + "/studio/dashboard");
+        }}>Volver sin confirmar el cierre</button>}
+        {revalidando && !falloComprobacion && <p role="status">Comprobando identidad y permisos…</p>}
+        {revalidando && <div>
+          {falloComprobacion && <button type="button" onClick={() => void consultar(new AbortController().signal)}>Reintentar comprobación</button>}
+          <button type="button" disabled={saliendo || bloqueos.current.operativo} onClick={() => setConfirmarSalida(true)}>Descartar edición y volver al Studio real</button>
+        </div>}
+        {vista && <div ref={editor} inert={revalidando} style={{ visibility: revalidando ? "hidden" : "visible" }}>
           {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={`${vista.espacio}:${vista.permisos.find(p => p.id === "invoices")?.edicion}`} espacio={vista.espacio} suspendida={revalidando} onDocumentos={setDocumentos} onBloqueoSalida={bloqueoFinanciero} solicitudDocumento={documentoPedido} onReinicio={() => setReinicio(n => n + 1)} />}
           {vista.permisos.some(p => p.id === "cn" || p.id === "naviera" || p.id === "shipments" || p.id === "ve") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} documentos={documentos} onBloqueoSalida={bloqueoOperativo} onAbrirFactura={codigo => setDocumentoPedido(actual => ({codigo,id:(actual?.id ?? 0)+1}))} onReinicio={() => setReinicio(n => n + 1)} />}
           <h2>Permisos de tu práctica</h2>
@@ -153,6 +197,7 @@ export function PracticaPersonal({ real }: { real: string }) {
           </ul> : <p>Tu rol actual no tiene acceso a los módulos de este recorrido.</p>}
         </div>}
       </section>
+      <ConfirmDialog open={confirmarSalida} title="Descartar la edición sin guardar" message="Se eliminarán los cambios que solo están en este editor. El avance ya guardado permanece en tu práctica." confirmLabel="Descartar y salir" cancelLabel="Seguir aquí" danger pending={saliendo || bloqueos.current.operativo} onConfirm={() => void salir(true)} onCancel={() => setConfirmarSalida(false)} />
     </main>
   );
 }

@@ -25,3 +25,13 @@ export function esToken(valor: unknown): valor is string {
 export function esUuid(valor: unknown): valor is string {
   return typeof valor === "string" && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(valor);
 }
+
+export function sonPermisosPractica(valor: unknown): valor is PermisoPractica[] {
+  return Array.isArray(valor) && valor.every(p => p && MODULOS_PRACTICA.some(m => m.id === p.id) && typeof p.edicion === "boolean")
+    && new Set(valor.map(p => p.id)).size === valor.length;
+}
+
+export function esVistaPractica(valor: unknown): valor is VistaPractica {
+  return !!valor && typeof valor === "object" && "espacio" in valor && esUuid(valor.espacio)
+    && "permisos" in valor && sonPermisosPractica(valor.permisos);
+}
