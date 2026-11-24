@@ -82,3 +82,18 @@ lint dirigido: PASÓ sin errores. El contrato temprano 671dc9eca pasó focal
 El nuevo focal conservará capturas sintéticas por SHA con acción fijada a commit.
 No se relajan pruebas anteriores ni se cambia configuración, estado o comandos
 de #813: solo el lector tipado y las facultades derivadas comunes.
+
+## Correcciones del lector y de recepción repetida
+Antes de cerrar se incorporan msg_7239f1812723, msg_62dd03c3e1bb y
+msg_3d0dfd37ff05. El focal b9afd7a5c alcanzó la segunda recepción y falló al
+localizar el select de B; los select tienen ahora nombre accesible explícito.
+Preparar el lector limpia su texto, conserva consulta separada y la invalida para
+confirmación al editar. La matriz escribe dos códigos distintos con caracteres y
+Enter desde ese control, sin fill ni borrado manual, además de la vía manual.
+Un código ya recibido o montado no permite otra recepción con UUID nuevo; la
+regresión conserva revisión/inventario/historial y deja entrar la cuarta solo con
+su etiqueta pendiente, conforme a P0131/0245. El replay legítimo original permanece.
+Dominio, API/PGlite y guard de .env.example dirigidos: 22 PASÓ, 1 SKIP de navegador
+por flag apagado. El guard pasa con PRACTICA_EVIDENCIA documentada sin valor
+operativo. El focal siguiente conserva diagnóstico ARIA y captura sintética ante
+fallo; la aceptación de navegador sigue pendiente de su corrida efectiva.

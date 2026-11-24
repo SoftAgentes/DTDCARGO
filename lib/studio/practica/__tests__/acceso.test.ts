@@ -542,6 +542,11 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     const recibir={id:randomUUID(),accion:"recibir",codigo:"DTD-B-99007131",cantidad:3};
     const previa=vista.revision;expect((await ejecutar(recibir)).status).toBe(200);
     const eventos=vista.documento.ejercicio.eventos.length;
+    const documentoRecibido=structuredClone(vista.documento);
+    const revisionRecibida=vista.revision;
+    expect((await ejecutar({...recibir,id:randomUUID(),cantidad:1})).status).toBe(409);
+    const despuesRecibida=await (await op()).json();
+    expect(despuesRecibida.revision).toBe(revisionRecibida);expect(despuesRecibida.documento).toEqual(documentoRecibido);
     expect((await ejecutar(recibir,previa)).status).toBe(200);
     expect(vista.documento.ejercicio.eventos).toHaveLength(eventos);
     expect(vista.documento.cargas).toEqual(legado.cargas);
@@ -557,6 +562,12 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect((await ejecutar({ancho:estiba.ancho,consolidado:estiba.consolidado,cantidad:estiba.cantidad,codigo:estiba.codigo,accion:estiba.accion,id:estiba.id},previa)).status).toBe(200);
     expect(vista.revision).toBe(revisionPersistida);
     expect((await ejecutar({...estiba,cantidad:1},previa)).status).toBe(409);
+    const documentoMontado=structuredClone(vista.documento), revisionMontada=vista.revision;
+    expect((await ejecutar({...recibir,id:randomUUID(),cantidad:1})).status).toBe(409);
+    const despuesMontada=await (await op()).json();
+    expect(despuesMontada.revision).toBe(revisionMontada);expect(despuesMontada.documento).toEqual(documentoMontado);
+    expect((await ejecutar({id:randomUUID(),accion:"recibir",codigo:"DTD-B-99007134",cantidad:1})).status).toBe(200);
+    expect(vista.documento.ejercicio.recepciones[1].cajas).toEqual(["DTD-B-99007134"]);
     usuarios.get(id)!.region="ve";
     const ve=await op({etapa:"ve",consolidado:"PRA-CON-CN-A"});expect(ve.status).toBe(200);
     const vv=await ve.json(); expect(vv.incidenciaDestino).toBe(true);
@@ -671,6 +682,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           if (u.origin === real && u.pathname === "/studio/dashboard") return ruta.fulfill({contentType:"text/html",body:"<h1>Studio real de muestra</h1>"});
           inesperadas.push(req.method()+" "+req.url()); return ruta.abort();
         });
+        let paginaDiagnostico: import("@playwright/test").Page | undefined;
         try {
           const perfil = await contextoBrowser.newPage();
           await perfil.goto(real + "/studio/perfil");
@@ -679,6 +691,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await perfil.getByRole("button",{name:"Entrar a modo de prueba",exact:true}).click();
           const p = await apertura;
           const cuenta = await cuentaCanjeada;
+          paginaDiagnostico=p;
           p.on("pageerror", e => console.error("Error de pantalla", e.message));
           await esperar(p.getByRole("heading",{name:"Permisos de tu pr\u00e1ctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Almacén China y Consolidado de práctica"})).toBeVisible();
@@ -695,6 +708,14 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ejercicio.getByRole("button",{name:"Enfocar lector de teclado",exact:true}).click();
           await entradaCodigo.pressSequentially(decodificado!.data); await entradaCodigo.press("Enter");
           await esperar(ejercicio.getByText(/4 pendientes de llegada/)).toBeVisible();
+          await ejercicio.getByRole("button",{name:"Enfocar lector de teclado",exact:true}).click();
+          await esperar(entradaCodigo).toHaveValue("");
+          await entradaCodigo.pressSequentially("DTD-B-99007133");
+          await esperar(entradaCodigo).toHaveValue("DTD-B-99007133");
+          await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007131",exact:true})).toBeVisible();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
+          await entradaCodigo.press("Enter");
+          await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007133",exact:true})).toBeVisible();
           await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("3");
           await ejercicio.getByRole("button",{name:"Cancelar consulta sin recibir",exact:true}).click();
           await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("4 por llegar · 0 disponibles");
@@ -711,6 +732,8 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("1 por llegar · 3 disponibles");
           const consultaRepetida=(await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision;
           await entradaCodigo.press("Enter"); await esperar(ejercicio.getByText(/Esta caja ya fue recibida/)).toBeVisible();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
+          await ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true}).evaluate((el:HTMLButtonElement)=>el.click());
           expect((await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision).toBe(consultaRepetida);
           await ejercicio.getByLabel("Motivo inventado del indicador",{exact:true}).fill("Vidrio inventado en recepción uno");
           perderRespuestaEjercicio=true;
@@ -723,11 +746,22 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ejercicio.getByLabel("Cajas a montar",{exact:true}).fill("2");
           await ejercicio.getByRole("button",{name:"Confirmar carga del lote",exact:true}).click();
           await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("1 por llegar · 1 disponibles en China · 2 en A · 0 en B");
-          await entradaCodigo.fill("DTD-B-99007134"); await entradaCodigo.press("Enter");
+          const antesRepetirMontada=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json();
+          await ejercicio.getByRole("button",{name:"Enfocar lector de teclado",exact:true}).click();
+          await entradaCodigo.pressSequentially("DTD-B-99007131");await entradaCodigo.press("Enter");
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
+          await ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true}).evaluate((el:HTMLButtonElement)=>el.click());
+          const despuesRepetirMontada=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json();
+          expect(despuesRepetirMontada.revision).toBe(antesRepetirMontada.revision);
+          expect(despuesRepetirMontada.documento).toEqual(antesRepetirMontada.documento);
+          await ejercicio.getByRole("button",{name:"Enfocar lector de teclado",exact:true}).click();
+          await entradaCodigo.pressSequentially("DTD-B-99007134"); await entradaCodigo.press("Enter");
           await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("1");
           await ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true}).click();
           await esperar(ejercicio.getByText(/^Recibo PRA-REC-CN-002: 1 cajas/)).toBeVisible();
-          await entradaCodigo.fill("DTD-B-99007133"); await entradaCodigo.press("Enter");
+          await ejercicio.getByRole("button",{name:"Enfocar lector de teclado",exact:true}).click();
+          await entradaCodigo.pressSequentially("DTD-B-99007133"); await entradaCodigo.press("Enter");
+          await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007133",exact:true})).toBeVisible();
           await ejercicio.getByLabel("Consolidado de práctica",{exact:true}).selectOption("PRA-CON-CN-B");
           await ejercicio.getByLabel("Cajas a montar",{exact:true}).fill("2");
           await ejercicio.getByLabel("Posición al ancho",{exact:true}).selectOption("2");
@@ -1199,6 +1233,13 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           console.log(`PASÓ fase 4 ${width}px ${tema}: entrada desde perfil por canje, carga hasta Venezuela, revisión sin emisión, cancelación, dos confirmaciones, pendientes y otro cliente intacto; Faro local sin servicio.`);
           matriz.push(`${width}-${tema}`);
           console.log(`PASÓ pantalla persistida ${width}px ${tema}; membresía financiera revocada y warehouse denegado; support consulta; capturas ${carpeta}; cero peticiones externas`);
+        } catch(error) {
+          if(paginaDiagnostico && !paginaDiagnostico.isClosed()) {
+            await paginaDiagnostico.screenshot({path:resolve(carpeta,`diagnostico-${width}-${tema}.png`),fullPage:true,timeout:5000}).catch(()=>undefined);
+            const arbol=await paginaDiagnostico.locator("main").ariaSnapshot({timeout:2000}).catch(()=>"No disponible");
+            writeFileSync(resolve(carpeta,`diagnostico-${width}-${tema}.aria.txt`),arbol);
+          }
+          throw error;
         } finally { await contextoBrowser.close(); }
       }
       if (process.env.PRACTICA_RECIBO) writeFileSync(process.env.PRACTICA_RECIBO,JSON.stringify(matriz));
