@@ -25,6 +25,13 @@ export function PracticaPersonal({ real }: { real: string }) {
   const [reinicio, setReinicio] = useState(0);
   const [documentoPedido, setDocumentoPedido] = useState<{codigo: string; id: number}>();
   const [salidaBloqueada, setSalidaBloqueada] = useState(false);
+  const bloqueos = useRef({ financiero: false, operativo: false });
+  const cambiarBloqueo = useCallback((motivo: "financiero" | "operativo", activo: boolean) => {
+    bloqueos.current[motivo] = activo;
+    setSalidaBloqueada(bloqueos.current.financiero || bloqueos.current.operativo);
+  }, []);
+  const bloqueoFinanciero = useCallback((activo: boolean) => cambiarBloqueo("financiero", activo), [cambiarBloqueo]);
+  const bloqueoOperativo = useCallback((activo: boolean) => cambiarBloqueo("operativo", activo), [cambiarBloqueo]);
   const ultimaConsulta = useRef(0);
   useLayoutEffect(() => {
     const aviso = document.querySelector<HTMLElement>("[data-entorno-prueba]");
@@ -91,6 +98,7 @@ export function PracticaPersonal({ real }: { real: string }) {
   }, [real, consultar]);
 
   async function salir() {
+    if (bloqueos.current.financiero || bloqueos.current.operativo || saliendo) return;
     setSaliendo(true);
     try {
       const espacio = sessionStorage.getItem(ESPACIO_DE_PESTANA);
@@ -115,8 +123,8 @@ export function PracticaPersonal({ real }: { real: string }) {
         <h1 id="titulo-practica">Mi práctica</h1>
         {mensaje && <p role="status">{mensaje}</p>}
         {vista && <>
-          {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={vista.espacio} espacio={vista.espacio} onBloqueoSalida={setSalidaBloqueada} solicitudDocumento={documentoPedido} onReinicio={() => setReinicio(n => n + 1)} />}
-          {vista.permisos.some(p => p.id === "cn" || p.id === "naviera") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} onAbrirFactura={codigo => setDocumentoPedido(actual => ({codigo,id:(actual?.id ?? 0)+1}))} onReinicio={() => setReinicio(n => n + 1)} />}
+          {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={vista.espacio} espacio={vista.espacio} onBloqueoSalida={bloqueoFinanciero} solicitudDocumento={documentoPedido} onReinicio={() => setReinicio(n => n + 1)} />}
+          {vista.permisos.some(p => p.id === "cn" || p.id === "naviera") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} onBloqueoSalida={bloqueoOperativo} onAbrirFactura={codigo => setDocumentoPedido(actual => ({codigo,id:(actual?.id ?? 0)+1}))} onReinicio={() => setReinicio(n => n + 1)} />}
           <h2>Permisos de tu práctica</h2>
           {vista.permisos.length ? <ul className={estilos.modulos}>
             {vista.permisos.map(p => <li key={p.id}>

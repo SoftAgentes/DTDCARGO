@@ -68,3 +68,18 @@ intacta (handler/SQL), y selección de preorden con descarte. Capturas y límite
 en `.agents/handoffs/task_0f561f5002cb.md`. Build y suite general están asignados
 a Calidad en GitHub por el Director; no se repiten localmente. La aceptación
 integral y activación siguen pendientes; #812 depende de las correcciones de #811.
+
+## Corrección independiente de permisos y salida
+Base revisada: `8b2dabdac98f9e58efdb58eb21f8beb4949fa514`.
+Allowlist exacta de esta corrección: `app/studio/practica/ChinaPractica.tsx`,
+`app/studio/practica/PracticaPersonal.tsx`, `lib/studio/practica/servidor.ts`,
+`lib/studio/practica/__tests__/acceso.test.ts`, este documento y
+`.agents/handoffs/task_7e63f8aeb111.md`.
+El padre combina motivos independientes de bloqueo financiero y operativo;
+la salida comprueba también el bloqueo antes de iniciar la revocación de sesión.
+Toda respuesta China devuelve los permisos vigentes cn/naviera por separado.
+Una lectura puede continuar por el otro módulo autorizado si perdió el solicitado;
+las escrituras siguen requiriendo exactamente el permiso de su operación.
+Recargar sustituye los permisos operativos de la pantalla, conservando las lecturas
+permitidas y retirando las acciones no autorizadas. ERR-01/A11Y-01: pendiente
+visible, control de salida deshabilitado y lectura de solo consulta explícita.

@@ -90,9 +90,10 @@ export async function facturacionPersonal(cfg: DestinoPractica, sesion: string, 
   return { ...guardado, edicion: permiso.edicion };
 }
 
-export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espacio: string, modulo: "cn" | "naviera", revision?: number, comando?: ComandoChina): Promise<{ revision: number; documento: ChinaPractica | null; generacion: number; edicion: boolean }> {
+export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espacio: string, modulo: "cn" | "naviera", revision?: number, comando?: ComandoChina): Promise<{ revision: number; documento: ChinaPractica | null; generacion: number; edicion: boolean; permisos: PermisoPractica[] }> {
   const acceso = await consultarPractica(cfg, sesion, espacio);
-  const permiso = acceso?.permisos.find(p => p.id === modulo);
+  const permisos = acceso?.permisos.filter(p => p.id === "cn" || p.id === "naviera") ?? [];
+  const permiso = permisos.find(p => p.id === modulo) ?? (!comando ? permisos[0] : undefined);
   if (!permiso || (comando && (!permiso.edicion || (comando.accion !== "reiniciar" && (comando.accion === "consolidar" ? modulo !== "naviera" : modulo !== "cn"))))) throw new Error("No tienes permiso para esta operación.");
   type Registro = { revision: number; documento: ChinaPractica | null; generacion: number };
   const leer = () => rpc(cfg, "china", { p_sesion: huella(sesion) }) as Promise<Registro>;
@@ -102,7 +103,7 @@ export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espaci
     registro = inicial ?? await leer();
   }
   if (!registro.documento) throw new Error("La práctica cambió. Recarga antes de continuar.");
-  if (!comando) return { ...registro, edicion: permiso.edicion };
+  if (!comando) return { ...registro, edicion: permiso.edicion, permisos };
   if (registro.revision !== revision) throw new Error("La práctica cambió. Recarga antes de continuar.");
   if (comando.accion === "reiniciar") {
     await reiniciarDesdeOperacion(cfg, sesion, registro.revision);
@@ -111,7 +112,7 @@ export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espaci
   const documento = aplicarChina(registro.documento, comando);
   const guardado = await rpc(cfg, "china", { p_sesion: huella(sesion), p_revision: revision, p_documento: documento });
   if (!guardado) throw new Error("La práctica cambió. Recarga antes de continuar.");
-  return { ...guardado as Registro, edicion: permiso.edicion };
+  return { ...guardado as Registro, edicion: permiso.edicion, permisos };
 }
 
 export async function reiniciarDesdeOperacion(cfg: DestinoPractica, sesion: string, revision: number) {

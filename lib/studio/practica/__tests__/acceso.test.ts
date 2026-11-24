@@ -33,6 +33,7 @@ const contexto = new AsyncLocalStorage<{ sitio: string; usuario?: string }>();
 const tenant = randomUUID();
 const usuarios = new Map<string, { role: StudioUserRole; warehouse_scope: string; disabled: boolean }>();
 const extras = new Map<string, { user_id: string; module_id: string; can_view: boolean; can_edit: boolean; expires_at: string }>();
+const ajustesPorRol = new Map<string, { module_id: string; can_view: boolean; can_edit: boolean }[]>();
 const dbOrigen = vi.hoisted(() => ({ cliente: vi.fn(), admin: vi.fn(), acceso: vi.fn() }));
 vi.mock("@/lib/db/server", () => ({ createClient: dbOrigen.cliente }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: dbOrigen.admin }));
@@ -106,7 +107,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             expect(["studio_role_module_overrides","studio_user_module_grants"]).toContain(tabla);
             expect(filtros.tenant_id).toBe(tenant);
             const extra = tabla === "studio_user_module_grants" && extras.get(String(filtros.user_id));
-            recibir({ data:extra ? [extra] : [], error:null });
+            recibir({ data:tabla === "studio_role_module_overrides" ? (ajustesPorRol.get(String(filtros.role)) ?? []) : extra ? [extra] : [], error:null });
           },
         };
         return cadena;
@@ -310,6 +311,28 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect((await op(a)).status).toBe(403);
   });
 
+  it("recarga permisos operativos separados y conserva solo las lecturas autorizadas", async () => {
+    const id=usuario("operations"), cuenta=await entrar(id);
+    const op=(body: object={})=>frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",...body},cuenta.sesion,prueba);
+    const ajustes=(cn:boolean, naviera:boolean, verCn=true)=>ajustesPorRol.set("operations",[{module_id:"cn",can_view:verCn,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera}]);
+    try {
+      ajustes(false,true);
+      let v=await (await op()).json();
+      expect(v.permisos).toEqual([{id:"cn",edicion:false},{id:"naviera",edicion:true}]);
+      expect((await op({revision:v.revision,comando:{accion:"recibir",envio:"PRA-EMB-003"}})).status).toBe(403);
+      const c=await op({modulo:"naviera",revision:v.revision,comando:{accion:"consolidar",envio:"PRA-EMB-001"}});expect(c.status).toBe(200);
+      ajustes(true,false); v=await (await op()).json();
+      expect(v.permisos).toEqual([{id:"cn",edicion:true},{id:"naviera",edicion:false}]);
+      expect((await op({modulo:"naviera",revision:v.revision,comando:{accion:"consolidar",envio:"PRA-EMB-001"}})).status).toBe(403);
+      expect((await op({revision:v.revision,comando:{accion:"recibir",envio:"PRA-EMB-003"}})).status).toBe(200);
+      ajustes(false,false,false); v=await (await op()).json();
+      expect(v.permisos).toEqual([{id:"naviera",edicion:false}]);
+      expect(v.documento.cargas[1].estado).toBe("recibida");
+      expect((await op({revision:v.revision,comando:{accion:"reiniciar",envio:"espacio"}})).status).toBe(403);
+      usuarios.get(id)!.disabled=true; expect((await op()).status).toBe(403);
+    } finally { ajustesPorRol.delete("operations"); }
+  });
+
   // Corrida de navegador explícita; CI unitario no instala Chromium. Se reporta el SKIP.
   it.skipIf(process.env.PRACTICA_NAVEGADOR !== "1")("recorrido persistido de pantalla a 390 y 1280 px, sin efectos externos", async () => {
     const require = createRequire(import.meta.url);
@@ -330,6 +353,14 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         const sufijo = tema === "light" ? "" : "-dark";
         const contextoBrowser = await browser.newContext({ viewport:{width,height:900}, serviceWorkers:"block" });
         const inesperadas: string[] = [];
+        let demora: {accion:string; avisar:()=>void; esperar:Promise<void>} | undefined;
+        const demorar=(accion:string)=>{
+          let avisar!:()=>void, liberar!:()=>void;
+          const observada=new Promise<void>(r=>{avisar=r;});
+          const esperar=new Promise<void>(r=>{liberar=r;});
+          demora={accion,avisar,esperar}; return {observada,liberar};
+        };
+        let salidas=0;
         await contextoBrowser.addInitScript(({ espacio }) => sessionStorage.setItem("dtd-practica-espacio", espacio), { espacio:cuenta.vista.espacio });
         await contextoBrowser.addInitScript(tema => {
           const aplicar = () => { document.documentElement.dataset.theme = tema; };
@@ -343,6 +374,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           if (u.origin === prueba && u.pathname === "/studio/practica" && config.rutaDelReceptor(u.pathname,req.method(),false)) return ruta.fulfill({contentType:"text/html",body:'<html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body class="studio-sys"><div id="app"></div><script src="/app.js"></script></body></html>'});
           if (u.origin === prueba && config.rutaDelReceptor(u.pathname,req.method(),!!req.headers()["next-action"])) {
             const res = await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),cuenta.sesion,req.headers().origin);
+            if (u.pathname.endsWith("/salir")) salidas++;
+            if (demora && req.postDataJSON()?.comando?.accion === demora.accion) {
+              const actual=demora; demora=undefined; actual.avisar(); await actual.esperar;
+            }
             return ruta.fulfill({status:res.status,json:await res.json()});
           }
           if (u.origin === real && u.pathname === "/studio/dashboard") return ruta.fulfill({contentType:"text/html",body:"<h1>Studio real de muestra</h1>"});
@@ -354,7 +389,16 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.goto(prueba + "/studio/practica");
           await esperar(p.getByRole("heading",{name:"Almacén China y Consolidado de práctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          const recepcionDemorada=demorar("recibir");
           await p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true}).click();
+          await recepcionDemorada.observada;
+          const salida=p.getByRole("button",{name:"Volver al Studio real",exact:true});
+          await esperar(salida).toBeDisabled();
+          await salida.evaluate((el:HTMLButtonElement)=>el.click());
+          expect(salidas).toBe(0);
+          await esperar(p.getByRole("status").filter({hasText:"Guardando o consultando"})).toBeVisible();
+          recepcionDemorada.liberar();
+          await esperar(salida).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
           await p.reload();
           const avanzada=p.locator("fieldset").filter({has:p.locator("legend",{hasText:"PRA-EMB-001"})});
@@ -372,7 +416,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.reload();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
           await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          const reinicioDemorado=demorar("reiniciar");
           await p.getByRole("button",{name:"Confirmar reiniciar",exact:true}).click();
+          await reinicioDemorado.observada; await esperar(salida).toBeDisabled();
+          reinicioDemorado.liberar(); await esperar(salida).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           // La pestaña anterior conserva su revisión; el servidor rechaza su escritura.
           await otraPestana.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true}).click();
@@ -383,10 +430,16 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.screenshot({path:resolve(carpeta,`reinicio-almacen-${width}${sufijo}.png`),fullPage:true});
           usuarios.get(cuentaId)!.role="admin";
           await p.reload();
+          const consolidacionDemorada=demorar("consolidar");
           await p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true}).click();
+          await consolidacionDemorada.observada; await esperar(salida).toBeDisabled();
+          consolidacionDemorada.liberar(); await esperar(salida).toBeEnabled();
           await esperar(avanzada).toContainText("PRA-CON-001");
           await p.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true}).click();
+          const identificacionDemorada=demorar("identificar");
           await p.getByRole("button",{name:"Identificar con marca ficticia",exact:true}).click();
+          await identificacionDemorada.observada; await esperar(salida).toBeDisabled();
+          identificacionDemorada.liberar(); await esperar(salida).toBeEnabled();
           await p.getByRole("button",{name:"Consolidar PRA-EMB-004",exact:true}).click();
           await p.reload();
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
@@ -403,6 +456,22 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
           await p.getByRole("button",{name:"Descartar conceptos",exact:true}).click();
           await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Carga propuesta");
+          // Dos razones simultáneas: terminar una no libera la otra.
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Cambio pendiente simultáneo");
+          const simultanea=demorar("recibir");
+          await p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true}).click();
+          await simultanea.observada; await esperar(salida).toBeDisabled();
+          await p.getByRole("button",{name:"Descartar conceptos sin guardar",exact:true}).click();
+          await p.getByRole("button",{name:"Descartar conceptos",exact:true}).click();
+          await esperar(salida).toBeDisabled();
+          simultanea.liberar(); await esperar(salida).toBeEnabled();
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Otro cambio pendiente");
+          // Una lectura también mantiene el bloqueo mientras el editor está sucio.
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(salida).toBeDisabled();
+          await p.getByRole("button",{name:"Descartar conceptos sin guardar",exact:true}).click();
+          await p.getByRole("button",{name:"Descartar conceptos",exact:true}).click();
+          await esperar(salida).toBeEnabled();
           const guardar = p.getByRole("button",{name:"Guardar conceptos",exact:true});
           await esperar(guardar).toBeEnabled();
           await p.getByRole("button",{name:"Repartir USD 300 en carga y sobrepeso",exact:true}).click();
@@ -449,6 +518,23 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ayudaEmitir.focus(); await ayudaEmitir.press("Enter");
           await esperar(p.locator('details:has(summary[aria-label="Ayuda: Emitir"])')).toHaveAttribute("open", "");
           await ayudaEmitir.press("Enter");
+          // Recorte sin cerrar sesión, dos módulos con niveles distintos.
+          usuarios.get(cuentaId)!.role="operations";
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:true}]);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición",{exact:true})).toBeVisible();
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:false}]);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:false}]);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
+          ajustesPorRol.delete("operations");
           // Mismo espacio abierto: el cambio de rol retira el detalle financiero,
           // incluso si quedó un extra de edición inválido para la operación real.
           usuarios.get(cuentaId)!.role = "warehouse";
