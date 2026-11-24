@@ -794,6 +794,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             {module_id:"shipments",can_view:true,can_edit:shipments},{module_id:"ve",can_view:true,can_edit:ve},
           ]);
           usuarios.get(cuentaId)!.role="operations";
+          usuarios.get(cuentaId)!.warehouse_scope="all";
           ajustarOperativos(false,true,true,true);
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
@@ -819,6 +820,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(0);
           await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
           await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
+          usuarios.get(cuentaId)!.warehouse_scope="cn";
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta",{exact:true})).toBeVisible();
+          expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"ve",revision:0,comando:{accion:"recibir_ve",envio:"PRA-EMB-001"}},sesionActual,prueba)).status).toBe(403);
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
           ajustesPorRol.delete("operations");
           // Mismo espacio abierto: el cambio de rol retira el detalle financiero,
