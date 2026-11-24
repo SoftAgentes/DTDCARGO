@@ -541,8 +541,11 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Ayuda: recibir en China",{exact:true}).press("Enter");
           await esperar(p.locator('details:has(summary[aria-label="Ayuda: recibir en China"])')).toHaveAttribute("open", "");
           await p.screenshot({path:resolve(carpeta,`china-almacen-${width}${sufijo}.png`),fullPage:true});
-          const otraPestana = await contextoBrowser.newPage();
-          await otraPestana.goto(prueba + "/studio/practica");
+          // Una pestaña independiente también entra por el perfil: no recibe
+          // sessionStorage precargado ni toma prestada la identidad de otra.
+          const segundaApertura = perfil.waitForEvent("popup");
+          await perfil.getByRole("button",{name:"Entrar a modo de prueba",exact:true}).click();
+          const otraPestana = await segundaApertura;
           await esperar(otraPestana.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
           await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
           await p.getByRole("button",{name:"Cancelar",exact:true}).click();
