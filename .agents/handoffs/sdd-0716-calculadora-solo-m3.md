@@ -85,3 +85,19 @@ consumidores públicos que activen pies cúbicos; se conserva sin cambios.
 ## HANDOFF AL DIRECTOR
 Impacto documental: spec y su índice generado; esta evidencia es local.
 No se consultaron ni mutaron datos reales. Claim se libera al terminar escritura.
+
+## Actualización del tren · 2026-11-24
+
+Task task_befc3667e7b0, Dispatch ctx_30ebfa5714fa, misma sesión y owner.
+Merge normal de main solicitado: 25a5aeb22e7d3cc6b24c5a0c8617b210bdd30558.
+Cabeza previa: 1875efd6b7af8c1e39117b3f61e3a0338ad2e4f4.
+Commit de merge: 6c6eb36af7ece72faeb4b8d008c0741bbd4bc58f, con ambos padres
+anteriores, sin rebase ni resolución manual de producto. Índice SDD regenerado:
+697 specs, 19 huecos, consistente con la resolución semántica del merge.
+No hay diff nuevo en los archivos de producto de SDD-0716 frente a la cabeza
+previa. No se absorben correcciones ajenas. Gates docs, SDD, gobernanza,
+componentes y diff --check pasan; pruebas focales del tren registradas abajo.
+PASÓ: TransportistasPanel.test.tsx y carrier-actions-escrituras.test.ts con
+maxWorkers=1, 56/56 pruebas, 2/2 suites, exit 0 (20,39 s).
+No se repiten tipos, lint, build ni suite global: no hubo resolución de código
+en el alcance; Quality se vuelve a ejecutar sobre cabeza exacta publicada.
