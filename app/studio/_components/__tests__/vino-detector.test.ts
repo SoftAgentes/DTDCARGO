@@ -11,11 +11,26 @@ describe("detector de clases de vino", () => {
     expect(cuentaVino('className="bg-winery text-wine-500"')).toBe(0);
   });
 
+  it("respeta corchetes escapados y barras escapadas por pares", () => {
+    const variantes = [
+      String.raw`[&.\[]:`,
+      String.raw`[&.\]]:`,
+      String.raw`[&.\\[data-open]]:`,
+      String.raw`[&.\\]:`,
+      String.raw`[&.\\\[]:`,
+      String.raw`group-[[data-open]]:[&.\]]:hover:`,
+    ];
+    for (const variante of variantes) {
+      expect(cuentaVino(`${variante}text-wine`), variante).toBe(1);
+      expect(cuentaVino(`${variante}text-accion`), variante).toBe(0);
+    }
+  });
+
   it("descarta una variante larga sin dos puntos y sigue contando la clase siguiente", () => {
     expect(cuentaVino(`className="${"a".repeat(20000)} bg-wine"`)).toBe(1);
   });
   it("descarta variantes arbitrarias repetidas sin retroceso combinatorio", () => {
-    // Proceso aislado: un regreso al patr?n ambiguo termina por timeout,
+    // Proceso aislado: un regreso al patrón ambiguo termina por timeout,
     // sin dejar bloqueado el runner ni ocupar la PC indefinidamente.
     const resultado = spawnSync(process.execPath, ["-e", `
       require("tsx/cjs");

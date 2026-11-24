@@ -16,13 +16,13 @@ export const RAIZ = join(__dirname, "..", "..", "..", "..");
 
 /** Tokens de vino del Studio y de la web, usados como valor. */
 const VINO_TOKEN = /var\(--(?:grad-|color-)?wine[a-z-]*/g;
-/** La clase base se prueba una sola vez, despu?s de consumir sus variantes. */
+/** La clase base se prueba una sola vez, después de consumir sus variantes. */
 const VINO_CLASE = /^(?:bg|text|border|ring|outline|fill|stroke|from|via|to|accent|decoration|divide|placeholder|caret|shadow)-wine(?:-[a-z]+)?(?![\w-])/;
 
 /**
  * Cada variante termina en su propio `:`. Los corchetes se balancean para
  * admitir `group-[[open]]:` y selectores anidados sin reconsiderar particiones
- * cuando la clase final no usa vino. Cada car?cter se recorre como m?ximo una vez.
+ * cuando la clase final no usa vino. Cada carácter se recorre como máximo una vez.
  */
 function clasesVino(texto: string): number {
   let n = 0;
@@ -34,7 +34,9 @@ function clasesVino(texto: string): number {
       if (clase[fin] === "[") {
         let nivel = 1;
         while (++fin < clase.length && nivel > 0) {
-          if (clase[fin] === "[") nivel++;
+          // Una barra consume el siguiente carácter, incluso otra barra.
+          if (clase[fin] === "\\") fin++;
+          else if (clase[fin] === "[") nivel++;
           else if (clase[fin] === "]") nivel--;
         }
         if (nivel > 0) break;

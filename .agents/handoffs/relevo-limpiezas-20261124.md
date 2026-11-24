@@ -63,3 +63,16 @@ Cumplimiento SDD-0686: tinta en datos sin destino y token azul en interacci?n; n
 - PAS?: eslint de los dos archivos tocados y git diff --check.
 - NO EJECUTADO en este seguimiento: verify completo, tipos globales, build y dem?s suites/gates globales; se respeta el turno fuerte de Decimales. CI nuevo y revisi?n independiente sobre la cabeza publicada quedan al Director.
 - Carril informativo de la PR: revisi?n previa por las mismas rutas sensibles; ning?n cambio de rutas de producto en este seguimiento. La cabeza exacta final se consulta en la PR y se reporta en worker_done; este handoff viaja en el mismo commit.
+
+
+## Revisión independiente P2: corchetes CSS escapados
+
+- Task: `task_1ffccd07b225`; Dispatch: `ctx_59b7feb37b7b`; Run: `run_31c6634809ff`. Mismo owner, sesión, worktree y PR #805.
+- HEAD al retomar: `d99cebf2143f61ad513cd56f5216b7781ee5a214`. Claim readquirido y guard con owner comprobado antes de editar y antes de commit.
+- Corrección: dentro de una variante arbitraria, la barra consume el siguiente carácter sin interpretarlo como corchete. Dos barras se consumen juntas; el corchete que venga después conserva su función estructural. El recorrido sigue avanzando sin retroceso.
+- Cobertura nueva: apertura y cierre escapados, pares de barras antes de apertura estructural y de cierre estructural, tres barras antes de apertura literal y variante mixta con anidado. Cada caso verifica vino detectado y clase de acción no detectada. Se conservan los regresores previos.
+- FALLÓ esperado antes del cambio: 1 prueba nueva de escapes, con cuenta 0 donde se esperaba 1; 3 pruebas previas pasaron. Log `%TEMP%/relevo-r3-red.log` (4,07 s).
+- PASÓ después: detector y contrato Registro/Planilla, 2 archivos y 16 pruebas, maxWorkers=1, 10,63 s. Log `%TEMP%/relevo-r3-green.log`.
+- PASÓ: eslint de detector y su prueba; git diff --check. Solo validación focal ligera, sin ocupar el turno fuerte.
+- NO EJECUTADO en este seguimiento: verify completo, tipos/build y gates globales; pendientes CI nuevo y revisión independiente de la cabeza publicada.
+- Resto del diff y UI conservados. Se repararon también tildes dañadas en tres comentarios del detector/test; sin cambiar el contrato. Este handoff forma parte del commit; SHA exacto y checks nuevos se entregan por worker_done.
