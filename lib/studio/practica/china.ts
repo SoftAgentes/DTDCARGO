@@ -2,6 +2,15 @@
 export type CargaPractica = { envio: string; cajas: string[]; cliente: string | null; preparada: boolean; preorden?: string; estado: "pendiente" | "recibida" | "consolidada" | "embarcada" | "en_aduana" | "recibida_ve"; consolidado?: string };
 export type ChinaPractica = { generacion: number; cargas: CargaPractica[]; eventos: { id: string; fecha: string; accion: string; fuente: "practica-personal"; motivo: string; antes: CargaPractica; despues: CargaPractica }[] };
 export type ComandoChina = { accion: "recibir" | "identificar" | "consolidar" | "embarcar" | "aduana" | "recibir_ve" | "reiniciar"; envio: string };
+export function normalizarChina(actual: ChinaPractica): ChinaPractica {
+  const copia = structuredClone(actual);
+  for (const c of copia.cargas) {
+    if (c.envio === "PRA-EMB-001" && c.preorden === "PRA-PRE-001" && c.preparada &&
+        c.cajas.length === 2 && c.cajas.includes("PRA-CAJA-001") && c.cajas.includes("PRA-CAJA-002") &&
+        c.cliente === "Aurora") c.cliente = "DTD-PRA-001";
+  }
+  return copia;
+}
 export function semillaChina(generacion = 1): ChinaPractica {
   return { generacion, cargas: [
     { envio: "PRA-EMB-001", cajas: ["PRA-CAJA-001", "PRA-CAJA-002"], cliente: "DTD-PRA-001", preparada: true, preorden: "PRA-PRE-001", estado: "recibida" },

@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { aplicarChina, semillaChina, type ChinaPractica, type ComandoChina } from "./china";
-import { aplicarFactura, semillaFacturacion, type FacturacionPractica, type ComandoFactura } from "./facturacion";
+import { aplicarChina, semillaChina, normalizarChina, type ChinaPractica, type ComandoChina } from "./china";
+import { aplicarFactura, semillaFacturacion, normalizarFacturacion, type FacturacionPractica, type ComandoFactura } from "./facturacion";
 import type { DestinoPractica, OrigenPractica } from "./config";
 import { API_PRACTICA, esToken, esUuid, MODULOS_PRACTICA, type PermisoPractica, type VistaPractica } from "./contrato";
 
@@ -82,6 +82,7 @@ export async function facturacionPersonal(cfg: DestinoPractica, sesion: string, 
     if (!registro) registro = await leer();
   }
   if (!registro) throw new Error("No se pudo preparar tu práctica.");
+  registro = { ...registro, documento: normalizarFacturacion(registro.documento) };
   if (!comando) return { ...registro, edicion: permiso.edicion };
   if (registro.revision !== revision) throw new Error("La práctica cambió. Recarga antes de continuar.");
   const documento = aplicarFactura(registro.documento, comando);
@@ -103,13 +104,14 @@ export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espaci
     registro = inicial ?? await leer();
   }
   if (!registro.documento) throw new Error("La práctica cambió. Recarga antes de continuar.");
-  if (!comando) return { ...registro, edicion: permiso.edicion, permisos };
+  const estadoChina = normalizarChina(registro.documento);
+  if (!comando) return { ...registro, documento: estadoChina, edicion: permiso.edicion, permisos };
   if (registro.revision !== revision) throw new Error("La práctica cambió. Recarga antes de continuar.");
   if (comando.accion === "reiniciar") {
     await reiniciarDesdeOperacion(cfg, sesion, registro.revision);
     return chinaPersonal(cfg, sesion, espacio, modulo);
   }
-  const documento = aplicarChina(registro.documento, comando);
+  const documento = aplicarChina(estadoChina, comando);
   const guardado = await rpc(cfg, "china", { p_sesion: huella(sesion), p_revision: revision, p_documento: documento });
   if (!guardado) throw new Error("La práctica cambió. Recarga antes de continuar.");
   return { ...guardado as Registro, edicion: permiso.edicion, permisos };

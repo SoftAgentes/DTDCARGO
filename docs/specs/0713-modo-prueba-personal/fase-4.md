@@ -31,3 +31,22 @@ R3: MP-01 y AUD-01 conservación e historial; ERR-01 conflicto explícito;
 A11Y-01 ayuda nativa y ConfirmDialog; VIS-01 tokens y estilos existentes.
 Clasificación pendiente de pruebas, no aceptación anticipada. Sin excepción nueva.
 La operación china existente conserva ambas listas de acceso; no abre otra ruta.
+
+## Continuidad entre versiones y dependencia Faro
+
+La normalización de identidad sintética se aplica al leer y antes de escribir,
+sin reinicio ni cambio de generación. Solo reconoce las tuplas preparadas de
+código/envío; conserva conceptos, pagos, estados e historial. Las cargas nuevas
+y las identidades desconocidas no se reasignan. Los snapshots previos permanecen
+intactos; el siguiente comando CAS conserva la identidad normalizada.
+
+Faro habilitado: **NO DISPONIBLE** en esta versión. La SDD-0637 sigue propuesta;
+el árbol contiene catálogo, guías y registro SQL, sin endpoint ni motor de
+conversación reutilizable. Falta un servicio Faro de práctica con autorización,
+contexto sintético y registro aislado antes de abrir una ruta en ambas fronteras.
+La prueba dinámica habilitada queda **NO EJECUTADA**. La ayuda local permanece
+disponible sin ese servicio. El Director confirmó este límite del encargo.
+
+Allowlist adicional de fixtures sintéticos recuperados de Git:
+- lib/studio/practica/__tests__/fixtures/fase-2-facturacion.json
+- lib/studio/practica/__tests__/fixtures/fase-3-china.json

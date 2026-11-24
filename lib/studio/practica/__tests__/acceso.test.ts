@@ -335,10 +335,27 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect((await op({modulo:"ve"})).status).toBe(403);
   });
 
+  it.each(["shipments", "ve"])("reinicia con edición exclusiva de %s y deniega consulta", async modulo => {
+    const id=usuario("operations"), cuenta=await entrar(id);
+    const op=(body: object={})=>frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo,...body},cuenta.sesion,prueba);
+    const ajustar=(edicion:boolean)=>ajustesPorRol.set("operations",["cn","naviera","shipments","ve"].map(m=>({module_id:m,can_view:m===modulo,can_edit:m===modulo && edicion})));
+    try {
+      ajustar(true);
+      let v=await (await op()).json();
+      expect(v.permisos).toEqual([{id:modulo,edicion:true}]);
+      const reinicio=await op({revision:v.revision,comando:{accion:"reiniciar",envio:"espacio"}});
+      expect(reinicio.status).toBe(200); v=await reinicio.json();
+      expect(v.generacion).toBe(2);
+      ajustar(false);
+      expect((await (await op()).json()).permisos).toEqual([{id:modulo,edicion:false}]);
+      expect((await op({revision:v.revision,comando:{accion:"reiniciar",envio:"espacio"}})).status).toBe(403);
+    } finally { ajustesPorRol.delete("operations"); }
+  });
+
   it("recarga permisos operativos separados y conserva solo las lecturas autorizadas", async () => {
     const id=usuario("operations"), cuenta=await entrar(id);
     const op=(body: object={})=>frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",...body},cuenta.sesion,prueba);
-    const ajustes=(cn:boolean, naviera:boolean, verCn=true)=>ajustesPorRol.set("operations",[{module_id:"cn",can_view:verCn,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera}]);
+    const ajustes=(cn:boolean, naviera:boolean, verCn=true)=>ajustesPorRol.set("operations",[{module_id:"cn",can_view:verCn,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera},{module_id:"shipments",can_view:false,can_edit:false},{module_id:"ve",can_view:false,can_edit:false}]);
     try {
       ajustes(false,true);
       let v=await (await op()).json();
@@ -394,14 +411,15 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     try {
       for (const width of [390,1280]) for (const tema of ["light","dark"]) {
         const cuentaId = usuario("warehouse", "cn");
-        let cuenta: Awaited<ReturnType<typeof entrar>>;
+        let confirmarCuenta: (cuenta: Awaited<ReturnType<typeof entrar>>) => void = () => { throw new Error("El ensayo no preparó el receptor del canje."); };
+        const cuentaCanjeada = new Promise<Awaited<ReturnType<typeof entrar>>>(resolver => { confirmarCuenta = resolver; });
         let sesionActual = "";
         let demorarEstado = false;
         let liberarEstados: (() => void)[] = [];
         let lecturasFactura = 0;
         let escriturasFactura = 0;
         const sufijo = tema === "light" ? "" : "-dark";
-        const contextoBrowser = await browser.newContext({ viewport:{width,height:900}, serviceWorkers:"block" });
+        const contextoBrowser = await browser.newContext({ viewport:{width,height:900}, hasTouch:width===390, isMobile:width===390, serviceWorkers:"block" });
         const inesperadas: string[] = [];
         let demora: {accion:string; avisar:()=>void; esperar:Promise<void>} | undefined;
         const demorar=(accion:string)=>{
@@ -429,7 +447,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           if (u.origin === prueba && u.pathname === API_PRACTICA + "canjear") {
             const r = await solicitar(prueba,"canjear",req.postDataJSON());
             const vista = await r.json();
-            cuenta = {pase:req.postDataJSON().pase,sesion:r.cookies.get(COOKIE_PRACTICA)!.value,vista}; sesionActual = cuenta.sesion;
+            const cookie = r.cookies.get(COOKIE_PRACTICA);
+            if (r.status !== 200 || !cookie || !vista.espacio) throw new Error("El canje no confirmó una sesión de práctica.");
+            sesionActual = cookie.value;
+            confirmarCuenta({pase:req.postDataJSON().pase,sesion:cookie.value,vista});
             return ruta.fulfill({status:r.status,json:vista});
           }
           if (u.origin === prueba && config.rutaDelReceptor(u.pathname,req.method(),!!req.headers()["next-action"])) {
@@ -454,6 +475,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           const apertura = perfil.waitForEvent("popup");
           await perfil.getByRole("button",{name:"Entrar a modo de prueba",exact:true}).click();
           const p = await apertura;
+          const cuenta = await cuentaCanjeada;
           p.on("pageerror", e => console.error("Error de pantalla", e.message));
           await esperar(p.getByRole("heading",{name:"Permisos de tu pr\u00e1ctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Almacén China y Consolidado de práctica"})).toBeVisible();
@@ -519,19 +541,34 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.reload();
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
           await esperar(avanzada).toContainText("Estado: consolidada");
+          for (const funcion of ["Embarcar","Facturar desde Embarques","Llegada a aduana","Recibir en Venezuela","Recepción Venezuela"]) {
+            const ayuda = p.getByLabel(`Ayuda: ${funcion}`,{exact:true});
+            await ayuda.focus(); await ayuda.press("Enter");
+            await esperar(ayuda.locator("..")).toHaveAttribute("open", "");
+            if (funcion === "Recepción Venezuela") await esperar(p.getByText(/Faro no está habilitado/)).toBeVisible();
+            await ayuda.press("Enter");
+            if (width === 390) { await ayuda.tap(); await esperar(ayuda.locator("..")).toHaveAttribute("open", ""); await ayuda.tap(); }
+          }
           await avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true}).click();
           await esperar(avanzada).toContainText("Estado: embarcada");
           await avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true}).click();
           await esperar(avanzada).toContainText("Estado: en_aduana");
+          const venezuelaDemorada=demorar("recibir_ve");
           await avanzada.getByRole("button",{name:/Confirmar liberaci/}).click();
+          await venezuelaDemorada.observada;
+          await esperar(salida).toBeDisabled();
+          await salida.evaluate((el:HTMLButtonElement)=>el.click()); expect(salidas).toBe(0);
+          venezuelaDemorada.liberar(); await esperar(salida).toBeEnabled();
           await esperar(avanzada).toContainText("Estado: recibida_ve");
           await p.reload();
           await esperar(avanzada).toContainText("Estado: recibida_ve");
 
           await p.screenshot({path:resolve(carpeta,`consolidado-${width}${sufijo}.png`),fullPage:true});
           await p.getByLabel("Documento",{exact:true}).selectOption("PRA-FAC-002");
-          await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
+          const escriturasAntesFacturar=escriturasFactura;
+          await avanzada.getByRole("button",{name:/^Facturar.*PRA-EMB-001/}).click();
           await esperar(p.getByLabel("Documento",{exact:true})).toHaveValue("PRA-PRE-001");
+          expect(escriturasFactura).toBe(escriturasAntesFacturar);
           await p.getByLabel("Concepto 1",{exact:true}).fill("Cambio sin guardar ficticio");
           await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
           await esperar(p.getByRole("dialog",{name:"Descartar conceptos sin guardar"})).toBeVisible();
@@ -624,8 +661,16 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(p.getByRole("button",{name:"Emitir factura ficticia",exact:true})).toBeEnabled();
           await p.getByRole("button",{name:"Emitir factura ficticia",exact:true}).click();
           await p.getByRole("button",{name:/los datos/}).click();
+          const emisionDemorada=demorar("emitir");
           await p.getByRole("button",{name:"Confirmar emitir",exact:true}).click();
+          await emisionDemorada.observada; await esperar(salida).toBeDisabled();
+          emisionDemorada.liberar(); await esperar(salida).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Emitir factura ficticia",exact:true})).toBeDisabled();
+          await esperar(avanzada.getByRole("button",{name:/^Facturar/})).toHaveCount(0);
+          await esperar(avanzada).toContainText("PRA-PRE-001 - emitida");
+          const comprobacionClientes=await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:cuenta.sesion});
+          const facturasClientes=(await comprobacionClientes.json()).documento.facturas;
+          expect(facturasClientes[1]).toMatchObject({codigo:"PRA-FAC-002",embarque:"PRA-EMB-002",cliente:"DTD-PRA-002",estado:"emitida",pagado:0});
           await p.getByRole("button",{name:"Vista previa de correo",exact:true}).click();
           await esperar(p.locator('p[role="status"]')).toContainText("Simulado · Correo a cliente@ejemplo.invalid");
           await p.getByRole("button",{name:"Vista previa de WhatsApp",exact:true}).click();

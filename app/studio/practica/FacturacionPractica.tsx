@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { API_PRACTICA } from "@/lib/studio/practica/contrato";
-import { totalPractica, erroresLineaPractica, type FacturacionPractica as Datos, type ComandoFactura, type LineaPractica } from "@/lib/studio/practica/facturacion";
+import { totalPractica, erroresLineaPractica, type FacturacionPractica as Datos, type ComandoFactura, type LineaPractica, type ResumenDocumentoPractica } from "@/lib/studio/practica/facturacion";
 import estilos from "./practica.module.css";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
@@ -11,7 +11,7 @@ const dinero = (centavos: number) => Number.isSafeInteger(centavos) ? new Intl.N
 function Ayuda({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return <details><summary aria-label={`Ayuda: ${titulo}`}>ⓘ {titulo}</summary><p>{children}</p></details>;
 }
-export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSalida, onReinicio, solicitudDocumento }: { espacio: string; suspendida?: boolean; onBloqueoSalida: (bloqueada: boolean) => void; onReinicio?: () => void; solicitudDocumento?: {codigo: string; id: number} }) {
+export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSalida, onReinicio, solicitudDocumento, onDocumentos }: { espacio: string; suspendida?: boolean; onBloqueoSalida: (bloqueada: boolean) => void; onReinicio?: () => void; solicitudDocumento?: {codigo: string; id: number}; onDocumentos?: (documentos: ResumenDocumentoPractica[]) => void }) {
   const [vista, setVista] = useState<Vista>();
   const solicitudAtendida = useRef<number>(0);
   const [error, setError] = useState("");
@@ -41,7 +41,7 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       if (res.status === 413) throw new Error("El contenido supera 24 KiB. Acorta los conceptos o el motivo y vuelve a guardar; tus cambios siguen en el editor.");
       const datos = await res.json();
       if (!res.ok) throw new Error(datos?.error ?? "No se pudo consultar la práctica.");
-      setVista(datos); setPrevia(""); setConfirmacion(null);
+      setVista(datos); setPrevia(""); setConfirmacion(null); onDocumentos?.(datos.documento.facturas.map((f: Datos["facturas"][number]) => ({codigo:f.codigo,embarque:f.embarque,cliente:f.cliente,estado:f.estado,conPagos:f.pagado > 0})));
       if (comando?.accion === "reiniciar") onReinicio?.();
       const cargadas = datos.documento.facturas.find((f: { codigo: string }) => f.codigo === seleccion)?.lineas ?? [];
       setLineas(cargadas); setIdentificadores(nuevasIdentidades(cargadas.length));
@@ -138,7 +138,7 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       <Ayuda titulo="Correo y WhatsApp">Estas vistas previas permanecen en la pantalla. No existen colas, proveedores ni botones de envío.</Ayuda>
       <button type="button" disabled={!vista.edicion || ocupado} onClick={() => setConfirmacion("reiniciar")}>Reiniciar mi práctica</button>
       <Ayuda titulo="Reanudar y reiniciar">Salir conserva el avance. Reiniciar restablece tus dos ejemplos y conserva el historial de ejercicios; no cambia la copia de otra persona. Cancela para conservar el avance actual.</Ayuda>
-      <ConfirmDialog open={!!confirmacion} title={confirmacion === "revisar" ? "Revisar datos antes de facturar" : confirmacion === "emitir" ? "Confirmación final de emisión" : confirmacion === "reiniciar" ? "Reiniciar mi práctica" : "Anular factura ficticia"}
+      <ConfirmDialog key={confirmacion ?? "cerrada"} open={!!confirmacion} title={confirmacion === "revisar" ? "Revisar datos antes de facturar" : confirmacion === "emitir" ? "Confirmación final de emisión" : confirmacion === "reiniciar" ? "Reiniciar mi práctica" : "Anular factura ficticia"}
         message={confirmacion === "revisar" || confirmacion === "emitir" ? `${factura.codigo} · ${factura.embarque} · ${factura.cliente} · ${dinero(totalPractica(factura.lineas))}. Se conservarán estos conceptos y este código en tu copia ficticia; no se envía al portal ni a contabilidad real.` : confirmacion === "reiniciar" ? "Se restablecerán tus facturas, pagos ficticios y cargas de China y Consolidado. Tu historial se conserva." : `Se anulará ${factura.codigo}; el original y el motivo se conservarán.`}
         danger reason={confirmacion === "anular"} reasonRequired reasonLabel="Motivo ficticio" pending={ocupado} error={error}
         confirmLabel={confirmacion === "revisar" ? "Sí, los datos están bien" : `Confirmar ${confirmacion}`} onCancel={() => setConfirmacion(null)}

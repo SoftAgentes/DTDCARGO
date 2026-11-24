@@ -1,9 +1,20 @@
 // Contrato compartido de ejercicios: revisión CAS y semilla exclusiva del receptor.
 export type LineaPractica = { concepto: string; cantidad: number; centavos: number };
 export type FacturaPractica = { codigo: string; embarque: string; cliente?: string; estado: "borrador" | "emitida" | "pagada" | "anulada"; lineas: LineaPractica[]; pagado: number; recibo?: string };
+export type ResumenDocumentoPractica = Pick<FacturaPractica, "codigo" | "embarque" | "cliente" | "estado"> & { conPagos: boolean };
 export type FacturacionPractica = { semilla: "facturacion-1"; generacion: number; facturas: FacturaPractica[]; eventos: { id: string; accion: string; codigo: string; motivo?: string; fecha: string; antes: FacturaPractica[]; despues: FacturaPractica[]; fuente: "practica-personal" }[] };
 export type ComandoFactura = { accion: "guardar" | "emitir" | "anular" | "pagar" | "reiniciar"; codigo: string; lineas?: LineaPractica[]; motivo?: string };
 export const totalPractica = (lineas: LineaPractica[]) => lineas.reduce((s, l) => s + l.cantidad * l.centavos, 0);
+// Compatibilidad de las dos tuplas preparadas de facturacion-1, sin tocar historia.
+export function normalizarFacturacion(actual: FacturacionPractica): FacturacionPractica {
+  const copia = structuredClone(actual);
+  for (const f of copia.facturas) {
+    if (f.cliente !== undefined) continue;
+    if (f.codigo === "PRA-PRE-001" && f.embarque === "PRA-EMB-001") f.cliente = "DTD-PRA-001";
+    if (f.codigo === "PRA-FAC-002" && f.embarque === "PRA-EMB-002") f.cliente = "DTD-PRA-002";
+  }
+  return copia;
+}
 export function erroresLineaPractica(l: LineaPractica) {
   return {
     concepto: typeof l?.concepto !== "string" || !l.concepto.trim() || l.concepto.length > 100 ? "Escribe un concepto de 1 a 100 caracteres." : "",

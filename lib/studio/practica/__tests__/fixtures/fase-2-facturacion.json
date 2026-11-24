@@ -1,0 +1,38 @@
+{
+  "semilla": "facturacion-1",
+  "generacion": 1,
+  "facturas": [
+    {
+      "codigo": "PRA-PRE-001",
+      "embarque": "PRA-EMB-001",
+      "estado": "borrador",
+      "lineas": [
+        {
+          "concepto": "Carga propuesta",
+          "cantidad": 1,
+          "centavos": 30000
+        }
+      ],
+      "pagado": 0
+    },
+    {
+      "codigo": "PRA-FAC-002",
+      "embarque": "PRA-EMB-002",
+      "estado": "emitida",
+      "lineas": [
+        {
+          "concepto": "Carga por CBM",
+          "cantidad": 1,
+          "centavos": 25000
+        },
+        {
+          "concepto": "Sobrepeso",
+          "cantidad": 1,
+          "centavos": 5000
+        }
+      ],
+      "pagado": 0
+    }
+  ],
+  "eventos": []
+}
