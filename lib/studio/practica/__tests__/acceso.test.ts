@@ -1330,8 +1330,13 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           // Recorte sin recargar página ni cambiar pestaña, cuatro capacidades.
           usuarios.get(cuentaId)!.role="operations";
           usuarios.get(cuentaId)!.warehouse_scope="all";
-          ajustarOperativos(false,true,true,true);
+          // La respuesta operativa inicial autoriza los cuatro módulos. El
+          // ensayo siguiente recorta/restaura ese techo; no inventa una facultad
+          // que la última lectura operativa nunca haya obtenido del servidor.
+          ajustarOperativos(true,true,true,true);
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          const lecturasAntesRecortesDestino=lecturasChina,escriturasAntesRecortesDestino=escriturasChina;
+          ajustarOperativos(false,true,true,true);await revalidarEstado();
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
           await esperar(p.getByRole("button",{name:/^Facturar|^Revisar PRA/})).toHaveCount(0);
           expect(await p.locator("main").innerText()).not.toContain("Borrador conservado al consultar permisos");
@@ -1341,7 +1346,6 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true})).toHaveCount(1);
           await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(1);
           await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición · Embarque: Consulta y edición · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
-          const lecturasAntesRecortesDestino=lecturasChina,escriturasAntesRecortesDestino=escriturasChina;
           ajustarOperativos(true,false,false,true);
           await revalidarEstado();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
