@@ -166,7 +166,13 @@ Seguimiento task_92b99922a1b9 sobre f343963809e920ed56a43e14f394e3574a239aca.
 El estado revalidado por el contenedor debe limitar también la proyección de China
 sin exigir Recargar cargas: cn/naviera por separado y ejercicioCn estricto.
 Una respuesta anterior de China no puede restaurar una facultad retirada. La
-consulta, cantidades y selección aún autorizadas permanecen montadas; un diálogo
+verificación más reciente de estado o China es la autoridad por módulo y capacidad,
+también al conceder edición después de consultar China en solo lectura. Ambas usan
+consultarPractica: no se intersecta una denegación anterior con una concesión nueva.
+Una petición China iniciada antes del estado nuevo no sustituye sus facultades al
+responder tarde. La proyección existente basta para estas operaciones y conserva
+la revisión CAS; no requiere otra lectura operativa para reflejar la concesión.
+La consulta, cantidades y selección aún autorizadas permanecen montadas; un diálogo
 de reinicio sin edición efectiva se cierra y no reaparece al recuperar facultad.
 La retirada no cancela ni libera el bloqueo de una escritura que espera respuesta;
 el servidor conserva sus verificaciones por operación y la revisión CAS.

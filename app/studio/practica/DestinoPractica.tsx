@@ -22,6 +22,7 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
   const [confirmacion,setConfirmacion]=useState<"abrir_incidencia"|"resolver_incidencia"|null>(null);
   const [reintento,setReintento]=useState<{comando:ComandoDestino;revision:number}>();
   const bloqueo=useRef(false),montado=useRef(true),lectura=useRef<AbortController|null>(null);
+  const recuperacionAutomatica=useRef<{permisos:PermisoPractica[];seleccion:string}|null>(null);
   const aviso=useRef<HTMLParagraphElement>(null);
   const datos=vista?.consolidado===consolidado && vista.etapa===etapaActiva && vista.caso===caso ? vista : undefined;
   // La proyección guardada no conserva una autorización que el padre ya retiró.
@@ -61,6 +62,22 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
     return ()=>{vigente=false;montado.current=false;lectura.current?.abort();};
   },[espacio,etapaActiva,consolidado,caso]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(error)aviso.current?.focus();},[error]);
+  useEffect(()=>{
+    if(!datos || ocupado)return;
+    const permiso=permisos.find(p=>p.id===etapaActiva);
+    const requiereProyeccion=(permiso?.edicion===true && !datos.edicion) || (permiso?.incidenciaDestino===true && !datos.incidenciaDestino);
+    if(!requiereProyeccion)return;
+    const seleccion=JSON.stringify([caso,etapaActiva,consolidado]);
+    if(recuperacionAutomatica.current?.permisos===permisos && recuperacionAutomatica.current.seleccion===seleccion)return;
+    let vigente=true;
+    queueMicrotask(()=>{
+      if(!vigente)return;
+      // Una sola recuperación por autoridad/selección; un fallo transitorio
+      // queda visible y no genera un ciclo de solicitudes ni nuevos comandos.
+      recuperacionAutomatica.current={permisos,seleccion};void pedir();
+    });
+    return()=>{vigente=false;};
+  },[datos,permisos,ocupado,caso,etapaActiva,consolidado]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{
     const prevenir=(e:BeforeUnloadEvent)=>{if(bloqueo.current){e.preventDefault();e.returnValue="";}};
     window.addEventListener("beforeunload",prevenir);return()=>window.removeEventListener("beforeunload",prevenir);

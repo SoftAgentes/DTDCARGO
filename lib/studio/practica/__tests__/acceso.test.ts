@@ -785,13 +785,24 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             {module_id:"shipments",can_view:true,can_edit:shipments},{module_id:"ve",can_view:true,can_edit:ve},
           ]);
           usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.warehouse_scope="all";
-          ajustarOperativos(true,true,false,true);
+          ajustarOperativos(false,false,false,false);
           await revalidarEstado();
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
-          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
           await ejercicio.getByLabel("Código de etiqueta de práctica",{exact:true}).fill("DTD-B-99007131");
           await ejercicio.getByRole("button",{name:"Consultar etiqueta de práctica",exact:true}).click();
           await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007131",exact:true})).toBeVisible();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
+          const lecturasAntesConcesion=lecturasChina, escriturasAntesConcesion=escriturasChina;
+          // La respuesta operativa guardada nació sin edición ni ejercicioCn.
+          // Solo estado concede CN/capacidad al volver, sin haberlas cargado antes.
+          ajustarOperativos(true,false,false,false);
+          await revalidarEstado();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
+          expect(lecturasChina).toBe(lecturasAntesConcesion); expect(escriturasChina).toBe(escriturasAntesConcesion);
           await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("2");
           await ejercicio.getByLabel("Consolidado de práctica",{exact:true}).selectOption("PRA-CON-CN-B");
           const lecturasAntesRecorte=lecturasChina, escriturasAntesRecorte=escriturasChina;
@@ -814,6 +825,9 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",revision:revisionInicial,comando:{accion:"ejercicio",envio:"PRA-COMPRA-CHINA-001",operacion:{id:randomUUID(),accion:"recibir",codigo:"DTD-B-99007131",cantidad:1}}},sesionActual,prueba)).status).toBe(403);
+          usuarios.get(cuentaId)!.region="cn";
+          await revalidarEstado();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeEnabled();
           await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
           await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toBeVisible();
           // Solo VE conserva edición: el reinicio personal sigue permitido.
@@ -947,8 +961,28 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await vistaDestino.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true}).click();
           await esperar(estadoDestino).toContainText("En tránsito");
           await etapaDestino.selectOption("ve");
+          // Primera concesión VE desde una proyección realmente de consulta.
+          ajustarOperativos(true,true,true,false);await revalidarEstado();
+          const consultaDestino=p.waitForResponse(r=>r.url()===prueba+API_PRACTICA+"china" && r.request().postDataJSON().etapa==="ve" && !r.request().postDataJSON().destino);
+          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          expect((await (await consultaDestino).json()).edicion).toBe(false);
+          await esperar(vistaDestino.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true})).toHaveCount(0);
+          const testigoConcesion=await entrar(usuario("operations","all","ve"));
+          const leerTestigoConcesion=async()=>(await (await solicitar(prueba,"china",{espacio:testigoConcesion.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:testigoConcesion.sesion})).json()).viaje;
+          const viajeTestigo=await leerTestigoConcesion();
+          ajustarOperativos(true,true,true,true);await revalidarEstado();
+          await esperar(vistaDestino.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true})).toBeEnabled();
+          await esperar(etapaDestino).toHaveValue("ve");await esperar(parcialDestino).toHaveValue(CONSOLIDADOS_CHINA[0]);
+          await esperar(vistaDestino.getByLabel("Ejercicio de destino",{exact:true})).toHaveValue("china");
           await vistaDestino.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true}).click();
           await esperar(estadoDestino).toContainText("Llegada física registrada");
+          expect(await leerTestigoConcesion()).toEqual(viajeTestigo);
+          ajustarOperativos(true,true,true,false);await revalidarEstado();
+          await esperar(vistaDestino.getByRole("button",{name:"Registrar observación aduanal ficticia",exact:true})).toHaveCount(0);
+          await esperar(vistaDestino.getByLabel("Código DTD-B en destino",{exact:true})).toHaveCount(0);
+          await esperar(estadoDestino).toContainText("Llegada física registrada");
+          ajustesPorRol.delete("operations");await revalidarEstado();
+          await esperar(vistaDestino.getByRole("button",{name:"Registrar observación aduanal ficticia",exact:true})).toBeEnabled();
           await vistaDestino.getByRole("button",{name:"Registrar observación aduanal ficticia",exact:true}).click();
           await p.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Observación aduanal de muestra en destino");
           await p.getByRole("button",{name:"Confirmar observación ficticia",exact:true}).click();

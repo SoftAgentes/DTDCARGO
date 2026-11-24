@@ -171,3 +171,12 @@ real para el mismo espacio, Recibir queda disponible sin pulsar Recargar. Se
 ensaya aparte de restaurar una facultad que ya existía en la lectura anterior.
 Si hace falta recuperar un detalle autorizado, puede consultarse automáticamente;
 los recortes que no lo necesitan conservan la prueba sin lecturas adicionales.
+
+En Viajes parciales, una primera concesión de edición o capacidad que falta en
+la proyección guardada recupera automáticamente una proyección del servidor,
+conservando caso, etapa y consolidado. Solo una recuperación por autoridad y
+selección; un error queda visible, sin bucle de solicitudes ni comandos. Los
+motivos nuevos solo se muestran si vienen en esa respuesta autorizada. El ensayo
+parte de una respuesta VE con edicion=false, concede por estado y registra llegada
+sin Recargar tras la concesión, conserva el testigo y retira después los controles
+revocados sin perder la consulta del viaje.
