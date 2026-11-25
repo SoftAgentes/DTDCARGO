@@ -13,10 +13,22 @@ http:
         (Method(`POST`) && PathRegexp(`^/api/practica/(reservar|canjear|estado|salir)$`)))
       service: practica-personal
       middlewares: [practica-personal-limites]
+    practica-facturacion:
+      entryPoints: [websecure]
+      tls: {}
+      rule: >-
+        Host(`{{ env "PRACTICA_HOST" }}`) &&
+        !HeaderRegexp(`Next-Action`, `.+`) &&
+        Method(`POST`) && Path(`/api/practica/facturacion`)
+      service: practica-personal
+      middlewares: [practica-facturacion-limites]
   middlewares:
     practica-personal-limites:
       buffering:
         maxRequestBodyBytes: 2048
+    practica-facturacion-limites:
+      buffering:
+        maxRequestBodyBytes: 24576
   services:
     practica-personal:
       loadBalancer:

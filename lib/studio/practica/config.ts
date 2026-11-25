@@ -56,9 +56,9 @@ export function configuracionPractica(env: EnvSource = process.env): OrigenPract
 }
 
 // El receptor se ejecuta aparte del staging técnico. Toda petición dinámica
-// cubierta por el proxy queda cerrada salvo la página y sus operaciones de fase 1.
+// cubierta por el proxy queda cerrada salvo la página y sus operaciones de práctica.
 export function rutaDelReceptor(path: string, metodo: string, accionNext: boolean): boolean {
   if (accionNext) return false;
   if (path === RUTA_PRACTICA) return metodo === "GET" || metodo === "HEAD";
-  return metodo === "POST" && ["reservar", "canjear", "estado", "salir"].some((op) => path === API_PRACTICA + op);
+  return metodo === "POST" && ["reservar", "canjear", "estado", "salir", "facturacion"].some((op) => path === API_PRACTICA + op);
 }

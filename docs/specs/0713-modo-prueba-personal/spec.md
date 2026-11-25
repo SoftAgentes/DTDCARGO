@@ -4,7 +4,7 @@ title: "Modo de prueba personal en Studio"
 status: in-progress
 author: "Codex (Worker)"
 created: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-24
 supersedes: null
 superseded_by: null
 related: ["0072", "0540", "0544", "0589", "0635", "0637", "0681", "0690"]
@@ -58,6 +58,9 @@ Si alguna ruta necesaria permite cruzar copias, esa ruta queda cerrada hasta cor
 **Ayuda y regreso.** El punto tiene un nombre accesible asociado a la función, admite teclado y tacto, y devuelve el foco al cerrar. El resumen describe el resultado real de la acción permitida. Faro, cuando corresponda, recibe únicamente la pregunta, la sección y contexto autorizado y sintético. La ayuda recuerda usar datos inventados. Ante un dato personal en la pregunta, se pide reformularla antes de enviarla al proveedor. La conversación y el historial se aíslan de producción y de otros usuarios. El botón de regreso termina la sesión de práctica, conserva el avance y lleva al inicio real o a su acceso normal si la sesión real venció. Se probará también el botón Atrás. [Accesibilidad](../../governance/policies/a11y-01.md) · [IA](../../governance/policies/ia-01.md)
 
 ## 4. Plan por fases
+
+Contrato local y allowlist de Facturación: [fase 2](fase-2.md). La implementación
+no habilita el acceso ni instala SQL en servidores compartidos.
 
 Cada fila de implementación se entrega en una PR propia. Las primeras PR preparan el recorrido con el acceso al equipo cerrado. La apertura de la primera versión exige las cinco etapas completas.
 

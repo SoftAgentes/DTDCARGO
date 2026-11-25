@@ -36,6 +36,9 @@ export function abrirReferencia(valor: unknown, llave: string, ahora = Date.now(
 
 export function permisosDePractica(rol: StudioUserRole, almacen: WarehouseScope, ajustes: RoleModuleOverrides, extras: UserModuleGrants): PermisoPractica[] {
   return MODULOS_PRACTICA.filter(({ id }) =>
+    // Detalle financiero interno: 0414/0407 y RPC 0533/0497 exigen estos roles.
+    // Un extra de pantalla no amplía las operaciones que la base real permite.
+    (id !== "invoices" || rol === "accounting" || rol === "admin") &&
     (rol === "admin" || scopeAllowsModule(almacen, id)) && canAccessModule(rol, id, ajustes, extras)
   ).map(({ id }) => ({ id, edicion: canEditModule(rol, id, ajustes, extras) }));
 }
@@ -50,14 +53,20 @@ export async function permisosVigentes(admin: SupabaseClient, sujeto: Sujeto): P
   const user = cuenta.data.user;
   const rol = miembro.data?.role;
   const scope = miembro.data?.warehouse_scope ?? "all";
-  if (cuenta.error || !user || user.id !== sujeto.usuario || user.is_anonymous || user.deleted_at || (user.banned_until && Date.parse(user.banned_until) > Date.now())) return null;
-  if (miembro.error || !STUDIO_USER_ROLES.includes(rol) || !["all", "cn", "ve"].includes(scope)) return null;
+  if (cuenta.error) {
+    if (cuenta.error.status === 404 || cuenta.error.code === "user_not_found") return null;
+    throw new Error("No se pudo comprobar la identidad");
+  }
+  if (miembro.error) throw new Error("No se pudo comprobar la membresía");
+  if (!user || user.id !== sujeto.usuario || user.is_anonymous || user.deleted_at || (user.banned_until && Date.parse(user.banned_until) > Date.now())) return null;
+  if (!miembro.data) return null;
+  if (!STUDIO_USER_ROLES.includes(rol) || !["all", "cn", "ve"].includes(scope)) throw new Error("Membresía inválida");
   if (rol === "admin") return permisosDePractica(rol, scope, {}, {});
   const [ajustes, extras] = await Promise.all([
     admin.from("studio_role_module_overrides").select("module_id, can_view, can_edit").eq("tenant_id", sujeto.tenant).eq("role", rol),
     admin.from("studio_user_module_grants").select(DECISION_COLUMNS).eq("tenant_id", sujeto.tenant).eq("user_id", sujeto.usuario),
   ]);
-  if (ajustes.error || !ajustes.data || extras.error || !extras.data) return null;
+  if (ajustes.error || !Array.isArray(ajustes.data) || extras.error || !Array.isArray(extras.data)) throw new Error("No se pudieron comprobar los permisos");
   const mapa: Record<string, ModuleAccessOverride> = {};
   for (const fila of ajustes.data) mapa[rol + ":" + fila.module_id] = { view: fila.can_view, edit: fila.can_edit };
   return permisosDePractica(rol, scope, mapa, grantsFromRows(extras.data));

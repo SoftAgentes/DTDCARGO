@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { aplicarFactura, semillaFacturacion, type FacturacionPractica, type ComandoFactura } from "./facturacion";
 import type { DestinoPractica, OrigenPractica } from "./config";
-import { API_PRACTICA, esToken, esUuid, MODULOS_PRACTICA, type PermisoPractica, type VistaPractica } from "./contrato";
+import { API_PRACTICA, esToken, esUuid, sonPermisosPractica, type VistaPractica } from "./contrato";
 
 const huella = (valor: string) => createHash("sha256").update(valor).digest("hex");
 const token = () => randomBytes(32).toString("hex");
@@ -49,14 +50,11 @@ export async function cerrar(cfg: DestinoPractica, sesion: string) {
   if (await rpc(cfg, "cerrar", { p_sesion: huella(sesion) }) !== true) throw new Error("Cierre pendiente");
 }
 
-function sonPermisos(value: unknown): value is PermisoPractica[] {
-  return Array.isArray(value) && value.every(p => p && MODULOS_PRACTICA.some(m => m.id === p.id) && typeof p.edicion === "boolean");
-}
-
 export async function espacioDeSesion(cfg: DestinoPractica, sesion: string) {
   const registro = await rpc(cfg, "sesion", { p_sesion: huella(sesion) });
+  if (registro === null) return null;
   if (!registro || typeof registro !== "object" || !("espacio" in registro) || !esUuid(registro.espacio)
-      || !("referencia" in registro) || typeof registro.referencia !== "string") return null;
+      || !("referencia" in registro) || typeof registro.referencia !== "string") throw new Error("Respuesta de sesión inválida");
   return { espacio: registro.espacio, referencia: registro.referencia };
 }
 
@@ -64,6 +62,27 @@ export async function consultarPractica(cfg: DestinoPractica, sesion: string, es
   const registro = await espacioDeSesion(cfg, sesion);
   if (!registro || (esperado && registro.espacio !== esperado)) return null;
   const vivo = await pedir(cfg.real + API_PRACTICA + "permisos", cfg.canal, { referencia: registro.referencia });
-  if (!vivo || typeof vivo !== "object" || !("permisos" in vivo) || !sonPermisos(vivo.permisos)) return null;
+  if (vivo && typeof vivo === "object" && "permisos" in vivo && vivo.permisos === null) return null;
+  if (!vivo || typeof vivo !== "object" || !("permisos" in vivo) || !sonPermisosPractica(vivo.permisos)) throw new Error("Respuesta de permisos inválida");
   return { espacio: registro.espacio, permisos: vivo.permisos };
+}
+
+export async function facturacionPersonal(cfg: DestinoPractica, sesion: string, espacio: string, revision?: number, comando?: ComandoFactura) {
+  const acceso = await consultarPractica(cfg, sesion, espacio);
+  const permiso = acceso?.permisos.find(p => p.id === "invoices");
+  if (!permiso || (comando && !permiso.edicion)) throw new Error("No tienes permiso para esta operación.");
+  type Registro = { revision: number; documento: FacturacionPractica };
+  const leer = () => rpc(cfg, "facturacion", { p_sesion: huella(sesion) }) as Promise<Registro | null>;
+  let registro = await leer();
+  if (!registro) {
+    registro = await rpc(cfg, "facturacion", { p_sesion: huella(sesion), p_revision: -1, p_documento: semillaFacturacion() }) as Registro | null;
+    if (!registro) registro = await leer();
+  }
+  if (!registro) throw new Error("No se pudo preparar tu práctica.");
+  if (!comando) return { ...registro, edicion: permiso.edicion };
+  if (registro.revision !== revision) throw new Error("La práctica cambió. Recarga antes de continuar.");
+  const documento = aplicarFactura(registro.documento, comando);
+  const guardado = await rpc(cfg, "facturacion", { p_sesion: huella(sesion), p_revision: revision, p_documento: documento }) as Registro | null;
+  if (!guardado) throw new Error("La práctica cambió. Recarga antes de continuar.");
+  return { ...guardado, edicion: permiso.edicion };
 }
