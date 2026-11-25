@@ -10,7 +10,8 @@ import { referenciaPrivada, abrirReferencia, permisosVigentes } from "@/lib/stud
 import { canalValido, emitirEnDestino, reservar, canjear, consultarPractica, cerrar, espacioDeSesion } from "@/lib/studio/practica/servidor";
 import { facturacionPersonal } from "@/lib/studio/practica/servidor";
 import type { ComandoFactura } from "@/lib/studio/practica/facturacion";
-import { chinaPersonal, leerCajasChina } from "@/lib/studio/practica/servidor";
+import { chinaPersonal, destinoPersonal } from "@/lib/studio/practica/servidor";
+import type { CasoDestino, ComandoDestino } from "@/lib/studio/practica/destino";
 import type { ComandoChina } from "@/lib/studio/practica/china";
 import { leerCuerpoFinanciero, MAX_CUERPO_ACCESO } from "@/lib/studio/practica/cuerpo";
 
@@ -81,17 +82,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ operac
     }
     if (operacion === "china") {
       if (!esToken(sesion) || !esUuid(esperado)) return json(null, 401);
-      const { comando, revision, modulo, consulta, etapa, consolidado } = datos.body;
+      const { comando, revision, modulo, consulta, etapa, consolidado, destino, caso } = datos.body;
+      if(caso !== undefined && (caso !== "china" && caso !== "preparado" || etapa === undefined)) return json(null,400);
       if (consulta !== undefined && (typeof consulta !== "string" || consulta.length > 512 || comando !== undefined)) return json(null,400);
       if (etapa !== undefined && ((etapa !== "shipments" && etapa !== "ve") || !CONSOLIDADOS_CHINA.includes(consolidado as ConsolidadoEjercicio) || comando !== undefined || consulta !== undefined)) return json(null,400);
-      if (etapa === undefined && modulo !== "cn" && modulo !== "naviera") return json(null, 400);
+      if (etapa === undefined && modulo !== "cn" && modulo !== "naviera" && modulo !== "shipments" && modulo !== "ve") return json(null, 400);
+      if (destino !== undefined && (!etapa || !destino || typeof destino !== "object" || Array.isArray(destino) || !Number.isSafeInteger(revision))) return json(null,400);
       if (comando !== undefined && (!comando || typeof comando !== "object" || !Number.isSafeInteger(revision))) return json(null, 400);
       try {
-        if (etapa === "shipments" || etapa === "ve") return json(await leerCajasChina(cfg,sesion,esperado,consolidado as ConsolidadoEjercicio,etapa));
-        return json(await chinaPersonal(cfg, sesion, esperado, modulo as "cn" | "naviera", revision as number | undefined, comando as ComandoChina | undefined, consulta as string | undefined));
+        if (etapa === "shipments" || etapa === "ve") return json(await destinoPersonal(cfg,sesion,esperado,consolidado as ConsolidadoEjercicio,etapa,revision as number|undefined,destino as ComandoDestino|undefined,caso as CasoDestino|undefined));
+        return json(await chinaPersonal(cfg, sesion, esperado, modulo as "cn" | "naviera" | "shipments" | "ve", revision as number | undefined, comando as ComandoChina | undefined, consulta as string | undefined));
       } catch (error) {
         const texto = error instanceof Error ? error.message : "";
-        const conocido = /^(No tienes|La práctica cambió|Carga inexistente|Recibe|Operación|Revisa|La etiqueta|Código|En este|Elige|La caja|Esta recepción|La operación|La referencia|La tarea|Ejercicio)/.test(texto);
+        const conocido = /^(No tienes|La práctica cambió|Carga inexistente|Recibe|Operación|Revisa|La etiqueta|Código|En este|Elige|La caja|Esta recepción|La operación|La referencia|La tarea|Ejercicio|El viaje|La solicitud|Viaje|Las cajas|Una caja|La observación|Escribe|Registra|No hay)/.test(texto);
         return json({ error: conocido ? texto : "Servicio de práctica indisponible." }, conocido ? (texto.startsWith("No tienes") ? 403 : 409) : 503);
       }
     }

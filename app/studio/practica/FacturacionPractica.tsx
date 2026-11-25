@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { API_PRACTICA } from "@/lib/studio/practica/contrato";
-import { totalPractica, erroresLineaPractica, type FacturacionPractica as Datos, type ComandoFactura, type LineaPractica } from "@/lib/studio/practica/facturacion";
+import { totalPractica, erroresLineaPractica, type FacturacionPractica as Datos, type ComandoFactura, type LineaPractica, type ResumenDocumentoPractica } from "@/lib/studio/practica/facturacion";
 import estilos from "./practica.module.css";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
@@ -11,7 +11,7 @@ const dinero = (centavos: number) => Number.isSafeInteger(centavos) ? new Intl.N
 function Ayuda({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return <details><summary aria-label={`Ayuda: ${titulo}`}>ⓘ {titulo}</summary><p>{children}</p></details>;
 }
-export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSalida, onReinicio, solicitudDocumento }: { espacio: string; suspendida?: boolean; onBloqueoSalida: (bloqueada: boolean) => void; onReinicio?: () => void; solicitudDocumento?: {codigo: string; id: number} }) {
+export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSalida, onReinicio, solicitudDocumento, onDocumentos }: { espacio: string; suspendida?: boolean; onBloqueoSalida: (bloqueada: boolean) => void; onReinicio?: () => void; solicitudDocumento?: {codigo: string; id: number}; onDocumentos?: (documentos: ResumenDocumentoPractica[]) => void }) {
   const [vista, setVista] = useState<Vista>();
   const solicitudAtendida = useRef<number>(0);
   const [error, setError] = useState("");
@@ -21,7 +21,7 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
   const formulario = useRef<HTMLFormElement>(null);
   const [seleccion, setSeleccion] = useState("PRA-PRE-001");
   const [lineas, setLineas] = useState<LineaPractica[]>([]);
-  const [confirmacion, setConfirmacion] = useState<"reiniciar" | "anular" | null>(null);
+  const [confirmacion, setConfirmacion] = useState<"reiniciar" | "anular" | "emitir" | "revisar" | null>(null);
   const [descarte, setDescarte] = useState<string | null>(null);
   const [previa, setPrevia] = useState("");
   const [validar, setValidar] = useState(false);
@@ -41,7 +41,7 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       if (res.status === 413) throw new Error("El contenido supera 24 KiB. Acorta los conceptos o el motivo y vuelve a guardar; tus cambios siguen en el editor.");
       const datos = await res.json();
       if (!res.ok) throw new Error(datos?.error ?? "No se pudo consultar la práctica.");
-      setVista(datos); setPrevia(""); setConfirmacion(null);
+      setVista(datos); setPrevia(""); setConfirmacion(null); onDocumentos?.(datos.documento.facturas.map((f: Datos["facturas"][number]) => ({codigo:f.codigo,embarque:f.embarque,cliente:f.cliente,estado:f.estado,conPagos:f.pagado > 0})));
       if (comando?.accion === "reiniciar") onReinicio?.();
       const cargadas = datos.documento.facturas.find((f: { codigo: string }) => f.codigo === seleccion)?.lineas ?? [];
       setLineas(cargadas); setIdentificadores(nuevasIdentidades(cargadas.length));
@@ -102,7 +102,7 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       <label>Documento <select aria-label="Documento" value={seleccion} disabled={ocupado} onChange={e => { if (sucio) setDescarte(e.target.value); else cambiarDocumento(e.target.value); }}>
         {vista.documento.facturas.map(f => <option key={f.codigo}>{f.codigo}</option>)}
       </select></label>
-      <p><strong>{factura.codigo}</strong> · Embarque {factura.embarque} · {factura.estado}</p>
+      <p><strong>{factura.codigo}</strong> · Embarque {factura.embarque} · Cliente {factura.cliente} · {factura.estado}</p>
       <Ayuda titulo="Revisar el documento">PRA-PRE-001 comienza como preorden pendiente y PRA-FAC-002 comienza emitida. Revisa arriba el estado actual de cada documento. Pertenecen a embarques inventados distintos.</Ayuda>
       {!vista.edicion && <p>Tu permiso actual es de consulta.</p>}
       <form ref={formulario} onSubmit={e => e.preventDefault()} onInput={() => { setTextoPendiente(true); setError(""); }}>
@@ -126,9 +126,10 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       {sucio && <><p>Guarda o descarta los conceptos antes de salir de la práctica.</p><button type="button" disabled={ocupado} onClick={() => setDescarte(seleccion)}>Descartar conceptos sin guardar</button></>}
       <Ayuda titulo="Corregir y agregar">Repartir conserva USD 300: carga por CBM USD 250 y sobrepeso USD 50. Agregar un artículo suma un cobro al total. Guarda los conceptos antes de emitir. Este caso usa cantidades enteras y no incluye impuestos.</Ayuda>
       <p>Total guardado: {dinero(totalPractica(factura.lineas))} · Pago ficticio: {dinero(factura.pagado)} · Saldo: {dinero(factura.estado === "anulada" ? 0 : totalPractica(factura.lineas) - factura.pagado)}</p>
+      {factura.estado !== "borrador" && <p>Documento ficticio resultante: {factura.codigo} · {factura.estado}. Conserva el detalle y sus conceptos arriba. {factura.pagado > 0 ? "Tiene pagos: anulación bloqueada." : factura.estado === "emitida" ? "Puedes anular con motivo; los conceptos ya no se editan." : "El original permanece en el historial."}</p>}
       {factura.recibo && <p>Recibo ficticio: {factura.recibo}</p>}
       <div className={estilos.acciones}>
-        <ActionButton idleLabel="Emitir factura ficticia" loadingLabel="Emitiendo factura…" variant="dark" size="default" disabled={!editable || ocupado || sucio} onAction={() => actuar("emitir")} />
+        <ActionButton idleLabel="Emitir factura ficticia" loadingLabel="Emitiendo factura…" variant="dark" size="default" disabled={!editable || ocupado || sucio} onAction={async () => { setConfirmacion("revisar"); }} />
         <ActionButton idleLabel="Pagar saldo ficticio una vez" loadingLabel="Registrando pago…" variant="dark" size="default" disabled={!vista.edicion || ocupado || factura.estado !== "emitida" || factura.pagado > 0} onAction={() => actuar("pagar")} />
         <button type="button" className="studio-btn studio-btn-danger" disabled={!vista.edicion || ocupado || factura.estado !== "emitida" || factura.pagado > 0} onClick={() => setConfirmacion("anular")}>Anular factura ficticia</button>
       </div>
@@ -141,11 +142,11 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       <Ayuda titulo="Correo y WhatsApp">Estas vistas previas permanecen en la pantalla. No existen colas, proveedores ni botones de envío.</Ayuda>
       <button type="button" disabled={!vista.edicion || ocupado} onClick={() => setConfirmacion("reiniciar")}>Reiniciar mi práctica</button>
       <Ayuda titulo="Reanudar y reiniciar">Salir conserva el avance. Reiniciar restablece tus dos ejemplos y conserva el historial de ejercicios; no cambia la copia de otra persona. Cancela para conservar el avance actual.</Ayuda>
-      <ConfirmDialog open={!!confirmacion} title={confirmacion === "reiniciar" ? "Reiniciar mi práctica" : "Anular factura ficticia"}
-        message={confirmacion === "reiniciar" ? "Se restablecerán tus facturas, pagos ficticios y cargas de China y Consolidado. Tu historial se conserva." : `Se anulará ${factura.codigo}; el original y el motivo se conservarán.`}
+      <ConfirmDialog key={confirmacion ?? "cerrada"} open={!!confirmacion} title={confirmacion === "revisar" ? "Revisar datos antes de facturar" : confirmacion === "emitir" ? "Confirmación final de emisión" : confirmacion === "reiniciar" ? "Reiniciar mi práctica" : "Anular factura ficticia"}
+        message={confirmacion === "revisar" || confirmacion === "emitir" ? `${factura.codigo} · ${factura.embarque} · ${factura.cliente} · ${dinero(totalPractica(factura.lineas))}. Se conservarán estos conceptos y este código en tu copia ficticia; no se envía al portal ni a contabilidad real.` : confirmacion === "reiniciar" ? "Se restablecerán tus facturas, pagos ficticios y el avance de China, Consolidado, Embarques y Recepción Venezuela, incluido el caso preparado de destino. Tu historial se conserva. Cancelar conserva todo el avance actual." : `Se anulará ${factura.codigo}; el original y el motivo se conservarán.`}
         danger reason={confirmacion === "anular"} reasonRequired reasonLabel="Motivo ficticio" pending={ocupado} error={error}
-        confirmLabel={`Confirmar ${confirmacion}`} onCancel={() => setConfirmacion(null)}
-        onConfirm={motivo => { if (confirmacion) void pedir({accion:confirmacion,codigo:seleccion,motivo}); }} />
+        confirmLabel={confirmacion === "revisar" ? "Sí, los datos están bien" : `Confirmar ${confirmacion}`} onCancel={() => setConfirmacion(null)}
+        onConfirm={motivo => { if (confirmacion === "revisar") setConfirmacion("emitir"); else if (confirmacion) void pedir({accion:confirmacion,codigo:seleccion,motivo}); }} />
       <ConfirmDialog open={!!descarte} title="Descartar conceptos sin guardar" message="Los conceptos sin guardar se perderán; el documento guardado se conserva."
         confirmLabel="Descartar conceptos" pending={ocupado} onCancel={() => setDescarte(null)} onConfirm={() => {
           if (descarte === "recargar") void pedir(); else if (descarte) { cambiarDocumento(descarte); document.getElementById("titulo-facturacion")?.focus(); }

@@ -22,6 +22,9 @@ import { canAccessModule, canEditModule } from "@/lib/studio/rbac";
 import { grantsFromRows } from "@/lib/studio/user-module-grants-queries";
 import { moduleCoverage } from "@/lib/studio/user-module-grants";
 import { permisosDePractica } from "../identidad";
+import { CODIGOS_CHINA, COMPRA_CHINA, CONSOLIDADOS_CHINA, type ComandoEjercicioChina } from "../ejercicio-china";
+import type { ComandoDestino } from "../destino";
+import { CAJAS_DESTINO_PREPARADO, COMPRA_DESTINO_PREPARADO } from "../semilla-destino";
 
 const real = "https://studio.example.test", prueba = "https://practica.example.test", datos = "https://datos.example.test";
 const clave = "a".repeat(64), canal = "b".repeat(64);
@@ -72,6 +75,18 @@ async function entrar(id: string) {
   expect(cookie).toMatchObject({ httpOnly:true, secure:true, sameSite:"strict", path:"/" });
   expect(cookie.domain).toBeUndefined();
   return { pase, sesion:cookie.value, vista:await canje.json() as VistaPractica };
+}
+
+async function paquetePantallaPractica() {
+    const require = createRequire(import.meta.url);
+    const { build } = createRequire(require.resolve("tsx/package.json"))("esbuild");
+    const paquete = await build({ stdin:{ contents:`import {useState} from 'react'; import {EntradaPractica} from './app/studio/_components/wiring/EntradaPractica'; import {createRoot} from 'react-dom/client'; import {PracticaPersonal} from './app/studio/practica/PracticaPersonal'; import './app/studio/tokens.css'; import './app/studio/studio.css'; function Perfil(){const [abierto,setAbierto]=useState(false);return <><button onClick={()=>setAbierto(true)}>Mi perfil</button>{abierto && <EntradaPractica origen='${prueba}'/>}</>}; createRoot(document.getElementById('app')).render(location.origin==='${real}'?<Perfil/>:<PracticaPersonal real='${real}'/>);`, loader:"tsx", resolveDir:process.cwd() }, jsx:"automatic", bundle:true, write:false, outdir:"salida", define:{"process.env.NODE_ENV":'"production"',"process.env":'{}'} });
+    const js = paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".js")).text;
+    const globales = readFileSync("app/globals.css","utf8");
+    const tipografia = globales.slice(globales.indexOf(".portal-sys,"),globales.indexOf("/* Números de la calculadora"));
+    const fuentes = `@font-face {font-family:Nunito;src:url(/nunito.woff2)} @font-face {font-family:Sora;src:url(/sora.woff2)} :root{--font-nunito:Nunito;--font-sora:Sora} *{box-sizing:border-box} body{margin:0} button,input,select{font:inherit}`;
+    const css = fuentes + tipografia + paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".css")).text;
+    return {js,css};
 }
 
 describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
@@ -148,6 +163,153 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     });
   }, 60000);
   afterAll(async () => { vi.unstubAllGlobals(); vi.restoreAllMocks(); await db?.close(); });
+
+  async function prepararOrigenDestino(completo=true) {
+    const id=usuario("admin","all","ve"), cuenta=await entrar(id);
+    const origen=async (operacion?:ComandoEjercicioChina,revision?:number)=>solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",revision,
+      ...(operacion ? {comando:{accion:"ejercicio",envio:COMPRA_CHINA,operacion}} : {})},{sesion:cuenta.sesion});
+    let v=await (await origen()).json();
+    const hacer=async (operacion:ComandoEjercicioChina)=>{const r=await origen(operacion,v.revision);expect(r.status).toBe(200);v=await r.json();return v;};
+    await hacer({id:randomUUID(),accion:"recibir",codigo:CODIGOS_CHINA[0],cantidad:3});
+    const recepcion=v.documento.ejercicio.recepciones[0].id;
+    await hacer({id:randomUUID(),accion:"fragil",recepcion,activo:true,motivo:"Manejo físico ficticio"});
+    await hacer({id:randomUUID(),accion:"marca",recepcion,motivo:"MOTIVO_INTERNO_CN_NO_DEVOLVER_A_VE"});
+    await hacer({id:randomUUID(),accion:"cargar",codigo:CODIGOS_CHINA[0],cantidad:2,consolidado:CONSOLIDADOS_CHINA[0],ancho:1});
+    if (completo) {
+      await hacer({id:randomUUID(),accion:"recibir",codigo:CODIGOS_CHINA[3],cantidad:1});
+      await hacer({id:randomUUID(),accion:"cargar",codigo:CODIGOS_CHINA[2],cantidad:2,consolidado:CONSOLIDADOS_CHINA[1],ancho:2});
+    }
+    const destinoOp=(etapa:"shipments"|"ve",consolidado:string,cmd?:ComandoDestino,revision?:number)=>solicitar(prueba,"china",{
+      espacio:cuenta.vista.espacio,etapa,consolidado,revision,...(cmd ? {destino:cmd} : {}),
+    },{sesion:cuenta.sesion});
+    const raw=async()=>{const r=await db.query<{valor:{revision:number;documento:import("../china").ChinaPractica}}>(
+      "select public.practica_china($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,createHash("sha256").update(cuenta.sesion).digest("hex")]);return r.rows[0].valor;};
+    return {id,cuenta,origen,destinoOp,raw};
+  }
+
+  it("conecta dos parciales por caja, filtra Frágil en VE y resuelve observación sin tocar facturas",async()=>{
+    const e=await prepararOrigenDestino(),[a,b]=CONSOLIDADOS_CHINA;
+    const fin=()=>solicitar(prueba,"facturacion",{espacio:e.cuenta.vista.espacio},{sesion:e.cuenta.sesion});
+    const financiera=await (await fin()).json();
+    const leer=async(etapa:"shipments"|"ve",c:string)=>{const r=await e.destinoOp(etapa,c);expect(r.status).toBe(200);return r.json();};
+    let v=await leer("shipments",a);
+    expect(v.cajas.map((c:{codigo:string})=>c.codigo)).toEqual(CODIGOS_CHINA.slice(0,2));
+    expect(v.cajas.every((c:{indicadores:{codigo:string}[]})=>c.indicadores.some(i=>i.codigo==="marca_sin_autorizacion"))).toBe(true);
+    const fisica=await leer("ve",b);
+    expect(fisica.cajas.map((c:{codigo:string})=>c.codigo)).toEqual(CODIGOS_CHINA.slice(2));
+    expect(fisica.cajas.map((c:{indicadores:{codigo:string}[]})=>c.indicadores.map(i=>i.codigo))).toEqual([["fragil"],[]]);
+    for (const datos of [v,fisica]) {
+      const texto=JSON.stringify(datos);
+      for (const prohibido of ["MOTIVO_INTERNO_CN_NO_DEVOLVER_A_VE","tareas","eventos","ejercicio","PRA-CARTA-001"]) expect(texto).not.toContain(prohibido);
+    }
+    const actuar=async(etapa:"shipments"|"ve",c:string,accion:ComandoDestino["accion"],extra:Partial<ComandoDestino>={})=>{
+      v=await leer(etapa,c);const r=await e.destinoOp(etapa,c,{id:randomUUID(),accion,consolidado:c,...extra},v.revision);expect(r.status).toBe(200);v=await r.json();return v;
+    };
+    await actuar("shipments",a,"embarcar"); await actuar("ve",a,"registrar_llegada");
+    await actuar("shipments",a,"abrir_incidencia",{motivo:"Observación aduanal ficticia de destino"});
+    expect((await e.destinoOp("ve",a,{id:randomUUID(),accion:"recibir_caja",consolidado:a,caja:CODIGOS_CHINA[0]},v.revision)).status).toBe(409);
+    usuarios.get(e.id)!.role="warehouse"; usuarios.get(e.id)!.region="cn";
+    const resolver={id:randomUUID(),accion:"resolver_incidencia" as const,consolidado:a,motivo:"Revisión logística ficticia completada"};
+    expect((await e.destinoOp("ve",a,resolver,v.revision)).status).toBe(403);
+    usuarios.get(e.id)!.role="operations"; usuarios.get(e.id)!.region="ve";
+    v=await leer("shipments",a);
+    const resuelta=await e.destinoOp("shipments",a,resolver,v.revision);expect(resuelta.status).toBe(200);
+    const sinMotivo=await leer("ve",a);expect(JSON.stringify(sinMotivo)).not.toContain(resolver.motivo);
+    const recibir={id:randomUUID(),accion:"recibir_caja" as const,consolidado:a,caja:CODIGOS_CHINA[0]};
+    const dobles=await Promise.all([e.destinoOp("ve",a,recibir,sinMotivo.revision),e.destinoOp("ve",a,recibir,sinMotivo.revision)]);
+    expect(dobles.map(r=>r.status)).toEqual([200,200]);
+    await actuar("ve",a,"recibir_caja",{caja:CODIGOS_CHINA[1]});
+    expect(v.viaje.estado).toBe("recepcion_completa");expect((await leer("ve",b)).viaje).toBeNull();
+    await actuar("shipments",b,"embarcar"); await actuar("ve",b,"registrar_llegada");
+    await actuar("ve",b,"recibir_caja",{caja:CODIGOS_CHINA[2]});
+    const antesB=structuredClone(v.viaje);
+    const repetida=await e.destinoOp("ve",a,{...recibir,id:randomUUID()},0);expect(repetida.status).toBe(200);
+    expect((await leer("ve",b)).viaje).toEqual(antesB);
+    await actuar("ve",b,"recibir_caja",{caja:CODIGOS_CHINA[3]});
+    expect(v.viaje.estado).toBe("recepcion_completa");
+    const raw=await e.raw();expect(raw.documento.destino?.eventos.filter(x=>x.accion==="recibir_caja")).toHaveLength(4);
+    usuarios.get(e.id)!.role="admin";
+    expect((await (await fin()).json()).documento).toEqual(financiera.documento);
+    expect(raw.documento.ejercicio?.compra).toBe(COMPRA_CHINA);
+    const preparado=await solicitar(prueba,"china",{espacio:e.cuenta.vista.espacio,etapa:"shipments",consolidado:a,caso:"preparado"},{sesion:e.cuenta.sesion});
+    const preparadoDatos=await preparado.json();expect(preparado.status).toBe(200);expect(preparadoDatos.viaje).toBeNull();
+    const despuesPreparar=await e.raw();expect(despuesPreparar.documento.ejercicio).toEqual(raw.documento.ejercicio);expect(despuesPreparar.documento.destino).toEqual(raw.documento.destino);
+    expect((await (await fin()).json()).documento).toEqual(financiera.documento);
+    const otra=await entrar(usuario("admin"));
+    expect((await solicitar(prueba,"china",{espacio:otra.vista.espacio,etapa:"ve",consolidado:a},{sesion:e.cuenta.sesion})).status).toBe(403);
+  });
+
+  it("el CAS único fija A contra estibas tardías y no congela snapshots que perdieron la carrera",async()=>{
+    const [a]=CONSOLIDADOS_CHINA;
+    const e=await prepararOrigenDestino(false);
+    const antes=await (await e.destinoOp("shipments",a)).json();
+    const embarcar={id:randomUUID(),accion:"embarcar" as const,consolidado:a};
+    expect((await e.destinoOp("shipments",a,embarcar,antes.revision)).status).toBe(200);
+    const cargar={id:randomUUID(),accion:"cargar" as const,codigo:CODIGOS_CHINA[2],cantidad:1,consolidado:a,ancho:1};
+    expect((await e.origen(cargar,antes.revision)).status).toBe(409);
+    const vigente=await (await e.origen()).json();
+    expect((await e.origen(cargar,vigente.revision)).status).toBe(409);
+    const raw=await e.raw();
+    expect(raw.documento.ejercicio?.cajas[2].estiba).toBeUndefined();
+    expect(raw.documento.destino?.viajes[0].cajas).toEqual(CODIGOS_CHINA.slice(0,2));
+    const primeroOrigen=await prepararOrigenDestino(false);
+    const viejo=await (await primeroOrigen.destinoOp("shipments",a)).json();
+    expect((await primeroOrigen.origen({...cargar,id:randomUUID()},viejo.revision)).status).toBe(200);
+    expect((await primeroOrigen.destinoOp("shipments",a,{...embarcar,id:randomUUID()},viejo.revision)).status).toBe(409);
+    expect((await primeroOrigen.raw()).documento.destino).toBeUndefined();
+    const carrera=await prepararOrigenDestino(false);
+    const inicio=await (await carrera.destinoOp("shipments",a)).json();
+    const resultados=await Promise.all([carrera.destinoOp("shipments",a,{...embarcar,id:randomUUID()},inicio.revision),carrera.origen({...cargar,id:randomUUID()},inicio.revision)]);
+    expect(resultados.map(r=>r.status).sort()).toEqual([200,409]);
+    const final=await carrera.raw();
+    if (final.documento.destino) expect(final.documento.destino.viajes[0].cajas).toEqual(final.documento.ejercicio?.cajas.filter(c=>c.estiba?.consolidado===a).map(c=>c.codigo));
+    else expect(final.documento.ejercicio?.cajas.filter(c=>c.estiba?.consolidado===a)).toHaveLength(3);
+  });
+
+  it.each([
+    {rol:"operations" as const,etapa:"shipments" as const,edicion:true},
+    {rol:"warehouse" as const,etapa:"ve" as const,edicion:true},
+    {rol:"support" as const,etapa:"ve" as const,edicion:false},
+  ])("prepara una copia autónoma para $rol/$etapa sin acciones CN ni facturas",async({rol,etapa,edicion})=>{
+    ajustesPorRol.set(rol,["cn","naviera","shipments","ve"].map(module_id=>({module_id,can_view:module_id===etapa,can_edit:module_id===etapa && edicion})));
+    try {
+      const id=usuario(rol,"ve","ve"),cuenta=await entrar(id),testigo=await entrar(usuario(rol,"ve","ve")),[a,b]=CONSOLIDADOS_CHINA;
+      const leer=(sesion=cuenta.sesion,consolidado:string=a)=>solicitar(prueba,"china",{espacio:sesion===cuenta.sesion ? cuenta.vista.espacio : testigo.vista.espacio,etapa,consolidado,caso:"preparado"},{sesion});
+      const iniciales=await Promise.all([leer(),leer()]);expect(iniciales.map(r=>r.status)).toEqual([200,200]);
+      let v=await iniciales[0].json();const otra=await iniciales[1].json();expect(v).toEqual(otra);
+      expect(v.caso).toBe("preparado");expect(v.cajas.every((c:{compra:string})=>c.compra===COMPRA_DESTINO_PREPARADO)).toBe(true);
+      expect(v.cajas.map((c:{codigo:string})=>c.codigo)).toEqual(CAJAS_DESTINO_PREPARADO.slice(0,2));
+      expect(v.cajas.map((c:{indicadores:{codigo:string}[]})=>c.indicadores.map(i=>i.codigo))).toEqual([["fragil"],["fragil"]]);
+      const leerB=await (await leer(cuenta.sesion,b)).json();expect(leerB.cajas.map((c:{indicadores:{codigo:string}[]})=>c.indicadores.map(i=>i.codigo))).toEqual([["fragil"],[]]);
+      if(etapa==="ve") expect(v.viaje).toMatchObject({estado:"en_transito",recibidas:[]}); else expect(v.viaje).toBeNull();
+      const comando:ComandoDestino={id:randomUUID(),caso:"preparado",consolidado:a,accion:etapa==="shipments" ? "embarcar" : "registrar_llegada"};
+      const escribir=(destino:ComandoDestino,revision:number)=>solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa,consolidado:a,caso:"preparado",revision,destino},{sesion:cuenta.sesion});
+      const respuesta=await escribir(comando,v.revision);
+      expect(respuesta.status).toBe(edicion ? 200 : 403);
+      if(edicion) {
+        v=await respuesta.json();expect((await escribir(comando,0)).status).toBe(200);
+        if(etapa==="ve") {
+          const recibir:ComandoDestino={id:randomUUID(),caso:"preparado",consolidado:a,accion:"recibir_caja",caja:CAJAS_DESTINO_PREPARADO[0]};
+          const recibida=await escribir(recibir,v.revision);expect(recibida.status).toBe(200);v=await recibida.json();
+          expect(v.viaje.recibidas).toEqual([CAJAS_DESTINO_PREPARADO[0]]);
+        }
+      }
+      expect(await (await leer()).json()).toEqual(v);
+      const sinFuente=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa,consolidado:a,caso:"china"},{sesion:cuenta.sesion});
+      expect((await sinFuente.json()).cajas).toEqual([]);
+      const crudo=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:etapa},{sesion:cuenta.sesion});
+      const texto=JSON.stringify(await crudo.json());for(const privado of ["practicaDestino","ejercicio","tareas","PRA-CARTA-001"])expect(texto).not.toContain(privado);
+      const testigoInicial=await (await leer(testigo.sesion)).json();
+      expect(testigoInicial.viaje).toEqual(etapa==="ve" ? {...v.viaje,estado:"en_transito",recibidas:[]} : null);
+      const finPrivado=await db.query<{valor:unknown}>("select public.practica_facturacion($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,createHash("sha256").update(cuenta.sesion).digest("hex")]);
+      expect(finPrivado.rows[0].valor).toBeNull();
+      const origenPrivado=await db.query<{valor:{documento:import("../china").ChinaPractica}}>("select public.practica_china($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,createHash("sha256").update(cuenta.sesion).digest("hex")]);
+      expect(origenPrivado.rows[0].valor.documento.ejercicio?.recepciones).toEqual([]);
+      expect(origenPrivado.rows[0].valor.documento.destino).toBeUndefined();
+      const ajena=await solicitar(prueba,"china",{espacio:testigo.vista.espacio,etapa,consolidado:a,caso:"preparado"},{sesion:cuenta.sesion});expect(ajena.status).toBe(403);
+      expect(usuarios.get(id)).toMatchObject({role:rol,region:"ve",warehouse_scope:"ve"});
+    } finally {ajustesPorRol.delete(rol);}
+  });
 
   it("indisponibilidad de origen/base y respuestas inválidas no se convierten en revocación", async () => {
     const id = usuario("accounting"); const cuenta = await entrar(id);
@@ -338,10 +500,51 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect((await op(a)).status).toBe(403);
   });
 
+  it("Embarques y VE revalidan cada permiso, revisión y pertenencia al espacio", async () => {
+    const id = usuario("admin");
+    const cuenta = await entrar(id);
+    const otra = await entrar(usuario("admin"));
+    const op = (body: object) => frontera(prueba,"china",{espacio:cuenta.vista.espacio,...body},cuenta.sesion,prueba);
+    let v = await (await op({modulo:"naviera"})).json();
+    const ejecutar = async (modulo: string, accion: string) => {
+      const r = await op({modulo,revision:v.revision,comando:{accion,envio:"PRA-EMB-001"}});
+      expect(r.status).toBe(200); v = await r.json();
+    };
+    await ejecutar("naviera","consolidar");
+    expect((await op({modulo:"ve",revision:v.revision,comando:{accion:"embarcar",envio:"PRA-EMB-001"}})).status).toBe(403);
+    await ejecutar("shipments","embarcar");
+    usuarios.get(id)!.role = "warehouse"; usuarios.get(id)!.warehouse_scope = "cn";
+    expect((await op({modulo:"ve",revision:v.revision,comando:{accion:"aduana",envio:"PRA-EMB-001"}})).status).toBe(403);
+    usuarios.get(id)!.role = "admin";
+    await ejecutar("ve","aduana");
+    await ejecutar("ve","recibir_ve");
+    expect(v.documento.cargas[0]).toMatchObject({estado:"recibida_ve",preorden:"PRA-PRE-001",cliente:"DTD-PRA-001"});
+    expect((await op({modulo:"ve",espacio:otra.vista.espacio})).status).toBe(403);
+    usuarios.get(id)!.disabled = true;
+    expect((await op({modulo:"ve"})).status).toBe(403);
+  });
+
+  it.each(["shipments", "ve"])("reinicia con edición exclusiva de %s y deniega consulta", async modulo => {
+    const id=usuario("operations"), cuenta=await entrar(id);
+    const op=(body: object={})=>frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo,...body},cuenta.sesion,prueba);
+    const ajustar=(edicion:boolean)=>ajustesPorRol.set("operations",["cn","naviera","shipments","ve"].map(m=>({module_id:m,can_view:m===modulo,can_edit:m===modulo && edicion})));
+    try {
+      ajustar(true);
+      let v=await (await op()).json();
+      expect(v.permisos).toEqual([{id:modulo,edicion:true,incidenciaDestino:false}]);
+      const reinicio=await op({revision:v.revision,comando:{accion:"reiniciar",envio:"espacio"}});
+      expect(reinicio.status).toBe(200); v=await reinicio.json();
+      expect(v.generacion).toBe(2);
+      ajustar(false);
+      expect((await (await op()).json()).permisos).toEqual([{id:modulo,edicion:false,incidenciaDestino:false}]);
+      expect((await op({revision:v.revision,comando:{accion:"reiniciar",envio:"espacio"}})).status).toBe(403);
+    } finally { ajustesPorRol.delete("operations"); }
+  });
+
   it("recarga permisos operativos separados y conserva solo las lecturas autorizadas", async () => {
     const id=usuario("operations"), cuenta=await entrar(id);
     const op=(body: object={})=>frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",...body},cuenta.sesion,prueba);
-    const ajustes=(cn:boolean, naviera:boolean, verCn=true)=>ajustesPorRol.set("operations",[{module_id:"cn",can_view:verCn,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera}]);
+    const ajustes=(cn:boolean, naviera:boolean, verCn=true)=>ajustesPorRol.set("operations",[{module_id:"cn",can_view:verCn,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera},{module_id:"shipments",can_view:false,can_edit:false},{module_id:"ve",can_view:false,can_edit:false}]);
     try {
       ajustes(false,true);
       let v=await (await op()).json();
@@ -448,23 +651,17 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
 
   // Corrida de navegador explícita; CI unitario no instala Chromium. Se reporta el SKIP.
   it.skipIf(process.env.PRACTICA_NAVEGADOR !== "1")("recorrido persistido de pantalla a 390 y 1280 px, sin efectos externos", async () => {
-    const require = createRequire(import.meta.url);
-    const { build } = createRequire(require.resolve("tsx/package.json"))("esbuild");
     const { chromium, expect: esperar } = await import("@playwright/test");
-    const paquete = await build({ stdin:{ contents:`import {createRoot} from 'react-dom/client'; import {PracticaPersonal} from './app/studio/practica/PracticaPersonal'; import {EntradaPractica} from './app/studio/_components/wiring/EntradaPractica'; import './app/studio/tokens.css'; import './app/studio/studio.css'; createRoot(document.getElementById('app')).render(location.origin==='${real}' ? <><h1>Mi perfil</h1><EntradaPractica origen='${prueba}'/></> : <PracticaPersonal real='${real}'/>);`, loader:"tsx", resolveDir:process.cwd() }, jsx:"automatic", bundle:true, write:false, outdir:"salida", define:{"process.env.NODE_ENV":'"production"',"process.env":'{}'} });
-    const js = paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".js")).text;
-    const globales = readFileSync("app/globals.css","utf8");
-    const tipografia = globales.slice(globales.indexOf(".portal-sys,"),globales.indexOf("/* Números de la calculadora"));
-    const fuentes = `@font-face {font-family:Nunito;src:url(/nunito.woff2)} @font-face {font-family:Sora;src:url(/sora.woff2)} :root{--font-nunito:Nunito;--font-sora:Sora} *{box-sizing:border-box} body{margin:0} button,input,select{font:inherit}`;
-    const css = fuentes + tipografia + paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".css")).text;
+    const {js,css}=await paquetePantallaPractica();
     const browser = await chromium.launch({ executablePath:process.env.PRACTICA_CHROMIUM || chromium.executablePath(), headless:true });
     const carpeta = resolve(tmpdir(), process.env.PRACTICA_EVIDENCIA || "sdd-0713-fase-3"); mkdirSync(carpeta, { recursive:true });
     const matriz: string[] = [];
     try {
       for (const width of [390,1280]) for (const tema of ["light","dark"]) {
         const cuentaId = usuario("warehouse", "cn");
-        const cuenta = await entrar(cuentaId);
-        let sesionActual = cuenta.sesion;
+        let confirmarCuenta: (cuenta: Awaited<ReturnType<typeof entrar>>) => void = () => { throw new Error("El ensayo no preparó el receptor del canje."); };
+        const cuentaCanjeada = new Promise<Awaited<ReturnType<typeof entrar>>>(resolver => { confirmarCuenta = resolver; });
+        let sesionActual = "";
         let demorarEstado = false;
         let liberarEstados: (() => void)[] = [];
         let lecturasFactura = 0;
@@ -475,7 +672,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         let retenerUna = false;
         const pendientesEstado: (() => void)[] = [];
         const sufijo = tema === "light" ? "" : "-dark";
-        const contextoBrowser = await browser.newContext({ viewport:{width,height:900}, serviceWorkers:"block" });
+        const contextoBrowser = await browser.newContext({ viewport:{width,height:900}, hasTouch:width===390, isMobile:width===390, serviceWorkers:"block" });
         const inesperadas: string[] = [];
         let demora: {accion:string; avisar:()=>void; esperar:Promise<void>} | undefined;
         const demorar=(accion:string)=>{
@@ -486,8 +683,8 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         };
         let salidas=0;
         let perderRespuestaEjercicio=false;
+        let perderRespuestaDestino=false;
         let lecturasChina=0, escriturasChina=0;
-        await contextoBrowser.addInitScript(({ espacio }) => sessionStorage.setItem("dtd-practica-espacio", espacio), { espacio:cuenta.vista.espacio });
         await contextoBrowser.addInitScript(() => {
           const estado = window as Window & { __practicaDemorarHost?: boolean };
           const Canal = window.MessageChannel;
@@ -509,33 +706,42 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         },tema);
         await contextoBrowser.route("**/*", async ruta => {
           const req = ruta.request(), u = new URL(req.url());
-          if ([prueba,real].includes(u.origin) && u.pathname === "/app.js") return ruta.fulfill({contentType:"application/javascript",body:js});
-          if ([prueba,real].includes(u.origin) && u.pathname === "/app.css") return ruta.fulfill({contentType:"text/css",body:css});
-          if ([prueba,real].includes(u.origin) && ["/nunito.woff2","/sora.woff2"].includes(u.pathname)) return ruta.fulfill({contentType:"font/woff2",body:readFileSync(u.pathname === "/nunito.woff2" ? "lib/font-files/nunito-sans-latin-wght.woff2" : "lib/font-files/sora-latin-wght.woff2")});
-          if (u.origin === real && u.pathname === "/studio/perfil-ensayo") return ruta.fulfill({contentType:"text/html",body:'<html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body class="studio-sys"><div id="app"></div><script src="/app.js"></script></body></html>'});
-          if (u.origin === real && u.pathname === API_PRACTICA+"emitir") {
-            const res=await solicitar(real,"emitir",{},{usuario:cuentaId});
-            return ruta.fulfill({status:res.status,json:await res.json()});
-          }
+          if ([real,prueba].includes(u.origin) && u.pathname === "/app.js") return ruta.fulfill({contentType:"application/javascript",body:js});
+          if ([real,prueba].includes(u.origin) && u.pathname === "/app.css") return ruta.fulfill({contentType:"text/css",body:css});
+          if (u.origin === prueba && ["/nunito.woff2","/sora.woff2"].includes(u.pathname)) return ruta.fulfill({contentType:"font/woff2",body:readFileSync(u.pathname === "/nunito.woff2" ? "lib/font-files/nunito-sans-latin-wght.woff2" : "lib/font-files/sora-latin-wght.woff2")});
           if (u.origin === prueba && u.pathname === "/studio/practica" && config.rutaDelReceptor(u.pathname,req.method(),false)) return ruta.fulfill({contentType:"text/html",body:'<html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body class="studio-sys"><div id="app"></div><script src="/app.js"></script></body></html>'});
+          if (u.origin === real && u.pathname === "/studio/perfil") return ruta.fulfill({contentType:"text/html",body:'<html><body><div id="app"></div><script src="/app.js"></script></body></html>'});
+          if (u.origin === real && u.pathname === API_PRACTICA + "emitir") {
+            const r = await solicitar(real,"emitir",{}, {usuario:cuentaId});
+            return ruta.fulfill({status:r.status,json:await r.json()});
+          }
+          if (u.origin === prueba && u.pathname === API_PRACTICA + "canjear") {
+            const r = await solicitar(prueba,"canjear",req.postDataJSON());
+            const vista = await r.json();
+            const cookie = r.cookies.get(COOKIE_PRACTICA);
+            if (r.status !== 200 || !cookie || !vista.espacio) throw new Error("El canje no confirmó una sesión de práctica.");
+            sesionActual = cookie.value;
+            confirmarCuenta({pase:req.postDataJSON().pase,sesion:cookie.value,vista});
+            return ruta.fulfill({status:r.status,json:vista});
+          }
           if (u.origin === prueba && config.rutaDelReceptor(u.pathname,req.method(),!!req.headers()["next-action"])) {
             if (u.pathname === API_PRACTICA+"salir" && falloCierre) return ruta.abort("failed");
             if (u.pathname === API_PRACTICA+"estado") {
               if (falloEstado === "red") return ruta.abort("failed");
               if (falloEstado === "503") return ruta.fulfill({status:503,json:null});
-              if (falloEstado === "invalida") return ruta.fulfill({status:200,json:{espacio:cuenta.vista.espacio,permisos:"inválidos"}});
+              if (falloEstado === "invalida") return ruta.fulfill({status:200,json:{espacio:req.postDataJSON().espacio,permisos:"inválidos"}});
             }
             if (u.pathname === API_PRACTICA+"facturacion" && req.postDataJSON().comando && rechazarEscritura) return ruta.fulfill({status:413,contentType:"text/plain",body:"Request Entity Too Large"});
             if (u.pathname === API_PRACTICA+"estado" && demorarEstado) await new Promise<void>(resolver => liberarEstados.push(resolver));
             if (u.pathname === API_PRACTICA+"facturacion") {
               if (req.postDataJSON().comando) escriturasFactura++; else lecturasFactura++;
             }
-            if (u.pathname === API_PRACTICA+"china") {
+            if (u.pathname === API_PRACTICA+"china" && !req.postDataJSON().etapa) {
               if (req.postDataJSON().comando) escriturasChina++; else lecturasChina++;
             }
             const res = await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),sesionActual,req.headers().origin);
             if (u.pathname.endsWith("/salir")) salidas++;
-            if (demora && req.postDataJSON()?.comando?.accion === demora.accion) {
+            if (demora && (req.postDataJSON()?.comando?.accion ?? req.postDataJSON()?.destino?.accion) === demora.accion) {
               const actual=demora; demora=undefined; actual.avisar(); await actual.esperar;
             }
             if (u.pathname === API_PRACTICA+"estado" && retenerUna) {
@@ -544,6 +750,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             }
             if(u.pathname === API_PRACTICA+"canjear") sesionActual=res.cookies.get(COOKIE_PRACTICA)?.value ?? sesionActual;
             if(perderRespuestaEjercicio && req.postDataJSON()?.comando?.accion==="ejercicio") {perderRespuestaEjercicio=false;return ruta.abort("failed");}
+            if(perderRespuestaDestino && req.postDataJSON()?.destino) {perderRespuestaDestino=false;return ruta.abort("failed");}
             return ruta.fulfill({status:res.status,json:await res.json()});
           }
           if (u.origin === real && u.pathname === "/studio/dashboard") return ruta.fulfill({contentType:"text/html",body:"<h1>Studio real de muestra</h1>"});
@@ -552,13 +759,15 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         let paginaDiagnostico: import("@playwright/test").Page | undefined;
         try {
           const perfil = await contextoBrowser.newPage();
-          await perfil.goto(real+"/studio/perfil-ensayo");
-          const abierta=contextoBrowser.waitForEvent("page");
+          await perfil.goto(real + "/studio/perfil");
+          await perfil.getByRole("button",{name:"Mi perfil",exact:true}).click();
+          const apertura = perfil.waitForEvent("popup");
           await perfil.getByRole("button",{name:"Entrar a modo de prueba",exact:true}).click();
-          const p=await abierta; paginaDiagnostico=p;
+          const p = await apertura;
+          const cuenta = await cuentaCanjeada;
+          paginaDiagnostico=p;
           p.on("pageerror", e => console.error("Error de pantalla", e.message));
-          await esperar(perfil.getByRole("button",{name:"Entrar a modo de prueba",exact:true})).toBeEnabled();
-          await perfil.close();
+          await esperar(p.getByRole("heading",{name:"Permisos de tu pr\u00e1ctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Almacén China y Consolidado de práctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
           const ejercicio=p.getByRole("region",{name:"China de principio a fin",exact:true});
@@ -571,11 +780,15 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             expect((await respuesta).status()).toBe(200);
             await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toHaveCount(0);
           };
-          usuarios.get(cuentaId)!.role="operations";
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:false}]);
+          const ajustarOperativos=(cn:boolean, naviera:boolean, shipments:boolean, ve:boolean)=>ajustesPorRol.set("operations",[
+            {module_id:"cn",can_view:true,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera},
+            {module_id:"shipments",can_view:true,can_edit:shipments},{module_id:"ve",can_view:true,can_edit:ve},
+          ]);
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustarOperativos(false,false,false,false);
           await revalidarEstado();
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
-          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta",{exact:true})).toBeVisible();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
           await ejercicio.getByLabel("Código de etiqueta de práctica",{exact:true}).fill("DTD-B-99007131");
           await ejercicio.getByRole("button",{name:"Consultar etiqueta de práctica",exact:true}).click();
           await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007131",exact:true})).toBeVisible();
@@ -583,25 +796,25 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           const lecturasAntesConcesion=lecturasChina, escriturasAntesConcesion=escriturasChina;
           // La respuesta operativa guardada nació sin edición ni ejercicioCn.
           // Solo estado concede CN/capacidad al volver, sin haberlas cargado antes.
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:false}]);
+          ajustarOperativos(true,false,false,false);
           await revalidarEstado();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
           await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeEnabled();
-          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Solo consulta",{exact:true})).toBeVisible();
+          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
           expect(lecturasChina).toBe(lecturasAntesConcesion); expect(escriturasChina).toBe(escriturasAntesConcesion);
           await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("2");
           await ejercicio.getByLabel("Consolidado de práctica",{exact:true}).selectOption("PRA-CON-CN-B");
           const lecturasAntesRecorte=lecturasChina, escriturasAntesRecorte=escriturasChina;
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:true}]);
+          ajustarOperativos(false,true,false,true);
           await revalidarEstado();
           await esperar(p.locator("li").filter({hasText:"Almacén China"})).toContainText("Solo consulta");
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
-          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición",{exact:true})).toBeVisible();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición · Embarque: Solo consulta · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
           await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
           expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",revision:revisionInicial,comando:{accion:"recibir",envio:"PRA-EMB-003"}},sesionActual,prueba)).status).toBe(403);
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:false}]);
+          ajustarOperativos(true,false,false,true);
           await revalidarEstado();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
@@ -617,7 +830,12 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeEnabled();
           await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
           await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toBeVisible();
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:false}]);
+          // Solo VE conserva edición: el reinicio personal sigue permitido.
+          ajustarOperativos(false,false,false,true);
+          await revalidarEstado();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toBeVisible();
+          await esperar(p.getByRole("button",{name:"Confirmar reiniciar",exact:true})).toBeEnabled();
+          ajustarOperativos(false,false,false,false);
           await revalidarEstado();
           await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
           await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
@@ -625,16 +843,24 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007131",exact:true})).toBeVisible();
           await esperar(ejercicio.getByLabel("Cajas que llegaron",{exact:true})).toHaveValue("2");
           await esperar(ejercicio.getByLabel("Consolidado de práctica",{exact:true})).toHaveValue("PRA-CON-CN-B");
-          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta",{exact:true})).toBeVisible();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
           await p.evaluate(()=>window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`china-revalidada-${width}${sufijo}.png`),fullPage:true});
           expect(lecturasChina).toBe(lecturasAntesRecorte); expect(escriturasChina).toBe(escriturasAntesRecorte);
           expect((await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision).toBe(revisionInicial);
-          usuarios.get(cuentaId)!.region="cn"; usuarios.get(cuentaId)!.role="warehouse";
+          usuarios.get(cuentaId)!.region="cn"; usuarios.get(cuentaId)!.role="warehouse"; usuarios.get(cuentaId)!.warehouse_scope="cn";
           ajustesPorRol.delete("operations"); await revalidarEstado();
           await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
           // El ensayo anterior verificó B conservado; el recorrido canónico empieza en A.
           await ejercicio.getByLabel("Consolidado de práctica",{exact:true}).selectOption("PRA-CON-CN-A");
           await ejercicio.getByRole("button",{name:"Cancelar consulta sin recibir",exact:true}).click();
+          // Perder consulta CN retira el documento y sus tareas del DOM; la
+          // consulta de los otros módulos no autoriza ver el documento crudo.
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustesPorRol.set("operations",["cn","naviera","shipments","ve"].map(module_id=>({module_id,can_view:module_id!=="cn",can_edit:false})));
+          await revalidarEstado();await esperar(ejercicio).toHaveCount(0);
+          await esperar(p.getByRole("region",{name:"Viajes parciales y recepción física de práctica",exact:true})).toBeVisible();
+          usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.warehouse_scope="cn";
+          ajustesPorRol.delete("operations");await revalidarEstado();await esperar(ejercicio).toBeVisible();
           await ejercicio.getByText("Etiqueta de práctica y ayuda para el lector",{exact:true}).click();
           const pngQr=await ejercicio.getByRole("img",{name:"QR de caja inventada",exact:true}).screenshot();
           const rawQr=await sharp(pngQr).ensureAlpha().raw().toBuffer({resolveWithObject:true});
@@ -716,6 +942,117 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ejercicio.getByLabel("Resolución interna inventada",{exact:true}).fill("Oficina revisó la carta sintética de autorización");
           await ejercicio.getByRole("button",{name:"Resolver tarea documental de práctica",exact:true}).click();
           await esperar(ejercicio.getByText(/Evidencia: PRA-CARTA-001/)).toBeVisible();
+          await p.screenshot({path:resolve(carpeta,`china-completa-${width}${sufijo}.png`),fullPage:true});
+          // El mismo ejercicio continúa en destino sin copiar cajas ni documentos.
+          usuarios.get(cuentaId)!.role="admin";
+          const finAntesDestino=await (await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:sesionActual})).json();
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.region="ve";usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustesPorRol.set("operations",["cn","naviera","shipments","ve"].map(module_id=>({module_id,can_view:module_id!=="cn",can_edit:module_id!=="cn"})));
+          await revalidarEstado();await esperar(ejercicio).toHaveCount(0);
+          await esperar(p.getByText(/Evidencia: PRA-CARTA-001/)).toHaveCount(0);
+          ajustesPorRol.delete("operations");await revalidarEstado();
+          const vistaDestino=p.getByRole("region",{name:"Viajes parciales y recepción física de práctica",exact:true});
+          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          const etapaDestino=vistaDestino.getByLabel("Vista de destino",{exact:true});
+          const parcialDestino=vistaDestino.getByLabel("Consolidado de destino",{exact:true});
+          const estadoDestino=vistaDestino.getByRole("status",{name:"Estado del viaje",exact:true});
+          await esperar(vistaDestino.getByRole("list",{name:"Cajas del viaje",exact:true}).getByRole("listitem")).toHaveCount(2);
+          await esperar(vistaDestino.getByText("Frágil / 易碎 · CN",{exact:true})).toHaveCount(2);
+          await vistaDestino.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true}).click();
+          await esperar(estadoDestino).toContainText("En tránsito");
+          await etapaDestino.selectOption("ve");
+          // Primera concesión VE desde una proyección realmente de consulta.
+          ajustarOperativos(true,true,true,false);await revalidarEstado();
+          const consultaDestino=p.waitForResponse(r=>r.url()===prueba+API_PRACTICA+"china" && r.request().postDataJSON().etapa==="ve" && !r.request().postDataJSON().destino);
+          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          expect((await (await consultaDestino).json()).edicion).toBe(false);
+          await esperar(vistaDestino.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true})).toHaveCount(0);
+          const testigoConcesion=await entrar(usuario("operations","all","ve"));
+          const leerTestigoConcesion=async()=>(await (await solicitar(prueba,"china",{espacio:testigoConcesion.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:testigoConcesion.sesion})).json()).viaje;
+          const viajeTestigo=await leerTestigoConcesion();
+          ajustarOperativos(true,true,true,true);await revalidarEstado();
+          await esperar(vistaDestino.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true})).toBeEnabled();
+          await esperar(etapaDestino).toHaveValue("ve");await esperar(parcialDestino).toHaveValue(CONSOLIDADOS_CHINA[0]);
+          await esperar(vistaDestino.getByLabel("Ejercicio de destino",{exact:true})).toHaveValue("china");
+          await vistaDestino.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true}).click();
+          await esperar(estadoDestino).toContainText("Llegada física registrada");
+          expect(await leerTestigoConcesion()).toEqual(viajeTestigo);
+          ajustarOperativos(true,true,true,false);await revalidarEstado();
+          await esperar(vistaDestino.getByRole("button",{name:"Registrar observación aduanal ficticia",exact:true})).toHaveCount(0);
+          await esperar(vistaDestino.getByLabel("Código DTD-B en destino",{exact:true})).toHaveCount(0);
+          await esperar(estadoDestino).toContainText("Llegada física registrada");
+          ajustesPorRol.delete("operations");await revalidarEstado();
+          await esperar(vistaDestino.getByRole("button",{name:"Registrar observación aduanal ficticia",exact:true})).toBeEnabled();
+          await vistaDestino.getByRole("button",{name:"Registrar observación aduanal ficticia",exact:true}).click();
+          await p.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Observación aduanal de muestra en destino");
+          await p.getByRole("button",{name:"Confirmar observación ficticia",exact:true}).click();
+          await esperar(vistaDestino.getByText("Observación de destino: pendiente.",{exact:true})).toBeVisible();
+          await esperar(vistaDestino.getByLabel("Código DTD-B en destino",{exact:true})).toBeDisabled();
+          await etapaDestino.selectOption("shipments");
+          await esperar(vistaDestino.getByText(/Observación aduanal de muestra en destino/)).toBeVisible();
+          // La carta China ya estaba resuelta; eso no resolvió la observación VE.
+          usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.region="cn";
+          // Revalidar desde otro módulo debe retirar también controles que usan
+          // una proyección de destino ya abierta, sin volver a leer ese detalle.
+          await revalidarEstado();
+          await esperar(vistaDestino.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true})).toHaveCount(0);
+          await esperar(vistaDestino.getByText(/Observación aduanal de muestra en destino/)).toHaveCount(0);
+          const denegada=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],revision:0,
+            destino:{id:randomUUID(),accion:"resolver_incidencia",consolidado:CONSOLIDADOS_CHINA[0],motivo:"Intento ficticio sin capacidad"}},{sesion:sesionActual});
+          expect(denegada.status).toBe(403);
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.region="ve";
+          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          await etapaDestino.selectOption("ve");
+          await vistaDestino.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true}).click();
+          await p.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Revisión logística inventada completada");
+          await p.getByRole("button",{name:"Confirmar resolución ficticia",exact:true}).click();
+          await esperar(vistaDestino.getByText("Observación de destino: resuelta.",{exact:true})).toBeVisible();
+          const leerCajaDestino=async(codigo:string,esperarConfirmacion=true)=>{
+            const input=vistaDestino.getByLabel("Código DTD-B en destino",{exact:true});await esperar(input).toHaveValue("");await input.pressSequentially(codigo);await input.press("Enter");
+            if (esperarConfirmacion) await esperar(input).toHaveValue("");
+          };
+          await leerCajaDestino(CODIGOS_CHINA[0]);await esperar(estadoDestino).toContainText("1 de 2 cajas");
+          await leerCajaDestino(CODIGOS_CHINA[0]);await esperar(estadoDestino).toContainText("1 de 2 cajas");
+          const destinoDemorado=demorar("recibir_caja");
+          await leerCajaDestino(CODIGOS_CHINA[1],false);await destinoDemorado.observada;
+          const salidaDestino=p.getByRole("button",{name:"Volver al Studio real",exact:true});
+          await esperar(salidaDestino).toBeDisabled();await salidaDestino.evaluate((el:HTMLButtonElement)=>el.click());expect(salidas).toBe(0);
+          destinoDemorado.liberar();await esperar(salidaDestino).toBeEnabled();
+          await esperar(estadoDestino).toContainText("Recepción física completa · Recepción física: 2 de 2 cajas");
+          await parcialDestino.selectOption(CONSOLIDADOS_CHINA[1]);
+          await esperar(vistaDestino.getByRole("heading",{name:`${CONSOLIDADOS_CHINA[1]} · Recepción física VE`,exact:true})).toBeVisible();
+          await esperar(estadoDestino).toHaveCount(0);
+          const cajasB=vistaDestino.getByRole("list",{name:"Cajas del viaje",exact:true}).getByRole("listitem");
+          await esperar(cajasB).toHaveCount(2);await esperar(cajasB.nth(0)).toContainText(CODIGOS_CHINA[2]);
+          await esperar(cajasB.nth(0)).toContainText("Frágil / 易碎");await esperar(cajasB.nth(1)).not.toContainText("Frágil");
+          const payloadVe=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[1]},{sesion:sesionActual})).json();
+          expect(JSON.stringify(payloadVe)).not.toMatch(/tareas|evidencia|eventos|resolucion|ejercicio|marca_sin_autorizacion/);
+          await p.reload();await vistaDestino.getByLabel("Ejercicio de destino",{exact:true}).selectOption("china");await etapaDestino.selectOption("ve");
+          await esperar(estadoDestino).toContainText("2 de 2 cajas");
+          await parcialDestino.selectOption(CONSOLIDADOS_CHINA[1]);await etapaDestino.selectOption("shipments");
+          await vistaDestino.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true}).click();await esperar(estadoDestino).toContainText("En tránsito");
+          await etapaDestino.selectOption("ve");await vistaDestino.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true}).click();
+          await esperar(estadoDestino).toContainText("Llegada física registrada");
+          perderRespuestaDestino=true;
+          await leerCajaDestino(CODIGOS_CHINA[2],false);
+          await vistaDestino.getByRole("button",{name:"Reintentar la misma operación de destino",exact:true}).click();
+          await esperar(estadoDestino).toContainText("1 de 2 cajas");
+          await parcialDestino.selectOption(CONSOLIDADOS_CHINA[0]);await esperar(estadoDestino).toContainText("2 de 2 cajas");
+          await leerCajaDestino(CODIGOS_CHINA[0]);await esperar(estadoDestino).toContainText("2 de 2 cajas");
+          await parcialDestino.selectOption(CONSOLIDADOS_CHINA[1]);await esperar(estadoDestino).toContainText("1 de 2 cajas");
+          await leerCajaDestino(CODIGOS_CHINA[3]);await esperar(estadoDestino).toContainText("Recepción física completa · Recepción física: 2 de 2 cajas");
+          await p.screenshot({path:resolve(carpeta,`destino-parciales-${width}${sufijo}.png`),fullPage:true});
+          const preparadoAntesCancelar=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"shipments",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:sesionActual})).json();
+          await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toContainText("Embarques y Recepción Venezuela, incluido el caso preparado de destino");
+          await p.getByRole("button",{name:"Cancelar",exact:true}).click();
+          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          await esperar(estadoDestino).toContainText("2 de 2 cajas");
+          expect(await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"shipments",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:sesionActual})).json()).toEqual(preparadoAntesCancelar);
+          usuarios.get(cuentaId)!.role="admin";
+          expect((await (await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:sesionActual})).json()).documento).toEqual(finAntesDestino.documento);
+          usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.region="cn";usuarios.get(cuentaId)!.warehouse_scope="cn";
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
           await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`china-completa-${width}${sufijo}.png`),fullPage:true});
           await ejercicio.getByLabel("Recepción para indicadores",{exact:true}).selectOption("PRA-REC-CN-001");
           await ejercicio.getByLabel("Motivo inventado del indicador",{exact:true}).fill("Corrección inventada sin cobro");
@@ -731,8 +1068,17 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await salida.evaluate((el:HTMLButtonElement)=>el.click());
           expect(salidas).toBe(0);
           await esperar(p.getByRole("status").filter({hasText:"Guardando o consultando"})).toBeVisible();
+          // La escritura ya se aplicó; una respuesta demorada no puede revivir
+          // edición retirada por una revalidación más reciente del padre.
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustarOperativos(false,true,false,true);await revalidarEstado();
+          await esperar(salida).toBeDisabled();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true})).toHaveCount(0);
           recepcionDemorada.liberar();
           await esperar(salida).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true})).toHaveCount(0);
+          usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.warehouse_scope="cn";
+          ajustesPorRol.delete("operations");await revalidarEstado();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
           await p.reload();
           const avanzada=p.locator("fieldset").filter({has:p.locator("legend",{hasText:"PRA-EMB-001"})});
@@ -741,9 +1087,12 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Ayuda: recibir en China",{exact:true}).focus();
           await p.getByLabel("Ayuda: recibir en China",{exact:true}).press("Enter");
           await esperar(p.locator('details:has(summary[aria-label="Ayuda: recibir en China"])')).toHaveAttribute("open", "");
-          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`china-almacen-${width}${sufijo}.png`),fullPage:true});
-          const otraPestana = await contextoBrowser.newPage();
-          await otraPestana.goto(prueba + "/studio/practica");
+          await p.screenshot({path:resolve(carpeta,`china-almacen-${width}${sufijo}.png`),fullPage:true});
+          // Una pestaña independiente también entra por el perfil: no recibe
+          // sessionStorage precargado ni toma prestada la identidad de otra.
+          const segundaApertura = perfil.waitForEvent("popup");
+          await perfil.getByRole("button",{name:"Entrar a modo de prueba",exact:true}).click();
+          const otraPestana = await segundaApertura;
           await esperar(otraPestana.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
           await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
           await p.getByRole("button",{name:"Cancelar",exact:true}).click();
@@ -785,10 +1134,46 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.reload();
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
           await esperar(avanzada).toContainText("Estado: consolidada");
-          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`consolidado-${width}${sufijo}.png`),fullPage:true});
+          for (const funcion of ["Embarcar","Facturar desde Embarques","Llegada a aduana","Recibir en Venezuela","Recepción Venezuela"]) {
+            const ayuda = p.getByLabel(`Ayuda: ${funcion}`,{exact:true});
+            await ayuda.focus(); await ayuda.press("Enter");
+            await esperar(ayuda.locator("..")).toHaveAttribute("open", "");
+            if (funcion === "Recepción Venezuela") {
+              await esperar(ayuda.locator("..")).toContainText("el trámite aduanal ya se da por resuelto");
+              await esperar(ayuda.locator("..")).toContainText("no lo tramitas ni confirmas una liberación formal");
+              await esperar(ayuda.locator("..")).toContainText("El conteo físico por caja se practica en «Viajes parciales y recepción física de práctica»");
+              await esperar(p.getByText(/Faro no está habilitado/)).toBeVisible();
+            }
+            if (funcion === "Recibir en Venezuela") {
+              await esperar(ayuda.locator("..")).toContainText("El trámite aduanal ya se da por resuelto");
+              await esperar(ayuda.locator("..")).toContainText("este botón solo cambia el estado a recibido en Venezuela");
+              await esperar(ayuda.locator("..")).toContainText("Para contar cada caja, usa «Viajes parciales y recepción física de práctica»");
+            }
+            if (funcion === "Llegada a aduana") await esperar(ayuda.locator("..")).toContainText("no tramita ni autoriza la liberación aduanal");
+            await ayuda.press("Enter");
+            if (width === 390) { await ayuda.tap(); await esperar(ayuda.locator("..")).toHaveAttribute("open", ""); await ayuda.tap(); }
+          }
+          await avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true}).click();
+          await esperar(avanzada).toContainText("Estado: embarcada");
+          await avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true}).click();
+          await esperar(avanzada).toContainText("Estado: en_aduana");
+          const venezuelaDemorada=demorar("recibir_ve");
+          await esperar(p.getByRole("button",{name:/Confirmar liberación/})).toHaveCount(0);
+          await avanzada.getByRole("button",{name:"Registrar recepción del embarque en Venezuela",exact:true}).click();
+          await venezuelaDemorada.observada;
+          await esperar(salida).toBeDisabled();
+          await salida.evaluate((el:HTMLButtonElement)=>el.click()); expect(salidas).toBe(0);
+          venezuelaDemorada.liberar(); await esperar(salida).toBeEnabled();
+          await esperar(avanzada).toContainText("Estado: recibida_ve");
+          await p.reload();
+          await esperar(avanzada).toContainText("Estado: recibida_ve");
+
+          await p.screenshot({path:resolve(carpeta,`consolidado-${width}${sufijo}.png`),fullPage:true});
           await p.getByLabel("Documento",{exact:true}).selectOption("PRA-FAC-002");
-          await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
+          const escriturasAntesFacturar=escriturasFactura;
+          await avanzada.getByRole("button",{name:/^Facturar.*PRA-EMB-001/}).click();
           await esperar(p.getByLabel("Documento",{exact:true})).toHaveValue("PRA-PRE-001");
+          expect(escriturasFactura).toBe(escriturasAntesFacturar);
           await p.getByLabel("Concepto 1",{exact:true}).fill("Cambio sin guardar ficticio");
           await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Cambio sin guardar ficticio");
           await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
@@ -901,15 +1286,37 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Concepto 4",{exact:true}).fill("Embalaje ficticio");
           await p.getByLabel("Precio USD 4",{exact:true}).fill("12.34");
           await guardar.click(); await esperar(guardar).toBeEnabled();
+          let preparadoFin=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:sesionActual})).json();
+          for(const accion of ["registrar_llegada","recibir_caja"] as const){
+            const r=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado",revision:preparadoFin.revision,
+              destino:{id:randomUUID(),caso:"preparado",consolidado:CONSOLIDADOS_CHINA[0],accion,...(accion==="recibir_caja" ? {caja:CAJAS_DESTINO_PREPARADO[0]} : {})}},{sesion:sesionActual});
+            expect(r.status).toBe(200);preparadoFin=await r.json();
+          }
           await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toContainText("Embarques y Recepción Venezuela, incluido el caso preparado de destino");
           await p.getByRole("button",{name:"Cancelar",exact:true}).click();
+          expect(await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:sesionActual})).json()).toEqual(preparadoFin);
           await p.reload();
           await esperar(p.getByLabel("Concepto 4",{exact:true})).toHaveValue("Embalaje ficticio");
           await esperar(p.getByText(/Total guardado:.*312,34/)).toBeVisible();
-          await esperar(avanzada).toContainText("Estado: consolidada");
+          await esperar(avanzada).toContainText("Estado: recibida_ve");
           await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`conceptos-${width}${sufijo}.png`),fullPage:true});
           await p.getByRole("button",{name:"Emitir factura ficticia",exact:true}).dblclick();
+          await esperar(p.getByRole("dialog")).toContainText("PRA-PRE-001");
+          await p.getByRole("button",{name:"Cancelar",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Emitir factura ficticia",exact:true})).toBeEnabled();
+          await p.getByRole("button",{name:"Emitir factura ficticia",exact:true}).click();
+          await p.getByRole("button",{name:/los datos/}).click();
+          const emisionDemorada=demorar("emitir");
+          await p.getByRole("button",{name:"Confirmar emitir",exact:true}).click();
+          await emisionDemorada.observada; await esperar(salida).toBeDisabled();
+          emisionDemorada.liberar(); await esperar(salida).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Emitir factura ficticia",exact:true})).toBeDisabled();
+          await esperar(avanzada.getByRole("button",{name:/^Facturar/})).toHaveCount(0);
+          await esperar(avanzada).toContainText("PRA-PRE-001 - emitida");
+          const comprobacionClientes=await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:cuenta.sesion});
+          const facturasClientes=(await comprobacionClientes.json()).documento.facturas;
+          expect(facturasClientes[1]).toMatchObject({codigo:"PRA-FAC-002",embarque:"PRA-EMB-002",cliente:"DTD-PRA-002",estado:"emitida",pagado:0});
           await p.getByRole("button",{name:"Vista previa de correo",exact:true}).click();
           await esperar(p.locator('section[aria-labelledby="titulo-facturacion"] p[role="status"]')).toContainText("Simulado · Correo a cliente@ejemplo.invalid");
           await p.getByRole("button",{name:"Vista previa de WhatsApp",exact:true}).click();
@@ -932,37 +1339,85 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ayudaEmitir.focus(); await ayudaEmitir.press("Enter");
           await esperar(p.locator('details:has(summary[aria-label="Ayuda: Emitir"])')).toHaveAttribute("open", "");
           await ayudaEmitir.press("Enter");
-          // Recorte sin cerrar sesión, dos módulos con niveles distintos.
+          // Recargar operación mantiene el borrador con permisos iguales y
+          // conserva el estado oculto ante fallo transitorio, sin otra lectura financiera.
+          await p.getByLabel("Documento",{exact:true}).selectOption("PRA-PRE-001");
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Borrador conservado al consultar permisos");
+          const lecturasAntesRecarga=lecturasFactura;
+          await revalidarEstado();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
+          expect(lecturasFactura).toBe(lecturasAntesRecarga);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toBeVisible();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
+          expect(lecturasFactura).toBe(lecturasAntesRecarga);
+          falloEstado="red";
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Reintentar comprobación",exact:true})).toBeVisible();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toBeHidden();
+          falloEstado=null;
+          await p.getByRole("button",{name:"Reintentar comprobación",exact:true}).click();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toBeVisible();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
+          expect(lecturasFactura).toBe(lecturasAntesRecarga);
+          // Recorte sin recargar página ni cambiar pestaña, cuatro capacidades.
           usuarios.get(cuentaId)!.role="operations";
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:true}]);
-          await revalidarEstado();
-          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
-          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true})).toBeEnabled();
-          const anteriorAlRecorte=demorar("recibir");
-          await p.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true}).click();
-          await anteriorAlRecorte.observada;
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:true}]);
-          await revalidarEstado();
-          await esperar(salida).toBeDisabled();
-          await salida.evaluate((el:HTMLButtonElement)=>el.click()); expect(salidas).toBe(0);
-          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
-          anteriorAlRecorte.liberar();
-          await esperar(salida).toBeEnabled();
-          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
-          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición",{exact:true})).toBeVisible();
-          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
-          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
-          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
-          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición",{exact:true})).toBeVisible();
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:false}]);
+          usuarios.get(cuentaId)!.warehouse_scope="all";
+          // La respuesta operativa inicial autoriza los cuatro módulos. El
+          // ensayo siguiente recorta/restaura ese techo; no inventa una facultad
+          // que la última lectura operativa nunca haya obtenido del servidor.
+          ajustarOperativos(true,true,true,true);
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Consulta y edición · Embarque: Consulta y edición · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          const lecturasAntesRecortesDestino=lecturasChina,escriturasAntesRecortesDestino=escriturasChina;
+          ajustarOperativos(false,true,true,true);await revalidarEstado();
+          await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:/^Facturar|^Revisar PRA/})).toHaveCount(0);
+          expect(await p.locator("main").innerText()).not.toContain("Borrador conservado al consultar permisos");
+          expect((await frontera(prueba,"facturacion",{espacio:cuenta.vista.espacio},sesionActual,prueba)).status).toBe(403);
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
+          await esperar(avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true})).toHaveCount(1);
+          await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(1);
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición · Embarque: Consulta y edición · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          ajustarOperativos(true,false,false,true);
+          await revalidarEstado();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:false}]);
-          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(1);
+          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toBeEnabled();
+          ajustarOperativos(false,false,false,false);
+          await revalidarEstado();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
+          usuarios.get(cuentaId)!.warehouse_scope="cn";
+          await revalidarEstado();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta",{exact:true})).toBeVisible();
+          expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"ve",revision:0,comando:{accion:"recibir_ve",envio:"PRA-EMB-001"}},sesionActual,prueba)).status).toBe(403);
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
+          expect(lecturasChina).toBe(lecturasAntesRecortesDestino);expect(escriturasChina).toBe(escriturasAntesRecortesDestino);
+          // Caso distinto: la última lectura operativa nunca tuvo edición CN.
+          // Estado confirma una concesión nueva al volver; debe estar disponible
+          // sin pulsar Recargar después de concederla (regresión original b8).
+          usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustarOperativos(false,true,true,true);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición · Embarque: Consulta y edición · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          ajustarOperativos(true,false,false,true);await revalidarEstado();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(1);
+          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toBeEnabled();
           ajustesPorRol.delete("operations");
           // Mismo espacio abierto: el cambio de rol retira el detalle financiero,
           // incluso si quedó un extra de edición inválido para la operación real.
@@ -1030,6 +1485,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByRole("button",{name:"Volver sin confirmar el cierre",exact:true}).click();
           await esperar(p).toHaveURL(real+"/studio/dashboard");
           expect(inesperadas).toEqual([]);
+          console.log(`PASÓ fase 4 ${width}px ${tema}: entrada desde perfil por canje, carga hasta Venezuela, revisión sin emisión, cancelación, dos confirmaciones, pendientes y otro cliente intacto; Faro local sin servicio.`);
           matriz.push(`${width}-${tema}`);
           console.log(`PASÓ pantalla persistida ${width}px ${tema}; membresía financiera revocada y warehouse denegado; support consulta; capturas ${carpeta}; cero peticiones externas`);
         } catch(error) {
@@ -1043,7 +1499,133 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
       }
       if (process.env.PRACTICA_RECIBO) writeFileSync(process.env.PRACTICA_RECIBO,JSON.stringify(matriz));
     } finally { await browser.close(); }
-  }, 120000);
+  }, 240000);
+
+  it.skipIf(process.env.PRACTICA_NAVEGADOR !== "1")("perfiles nuevos practican destino preparado sin acciones previas de China",async()=>{
+    const {chromium,expect:esperar}=await import("@playwright/test");
+    const {js,css}=await paquetePantallaPractica();
+    const browser=await chromium.launch({executablePath:process.env.PRACTICA_CHROMIUM || chromium.executablePath(),headless:true});
+    const carpeta=resolve(tmpdir(),process.env.PRACTICA_EVIDENCIA || "sdd-0713-fase-4");mkdirSync(carpeta,{recursive:true});
+    const matriz:string[]=[];
+    const perfiles=[{rol:"operations" as const,etapa:"shipments" as const,edicion:true},{rol:"warehouse" as const,etapa:"ve" as const,edicion:true},{rol:"support" as const,etapa:"ve" as const,edicion:false}];
+    try {
+      for(const perfil of perfiles)for(const width of [390,1280])for(const tema of ["light","dark"]){
+        ajustesPorRol.set(perfil.rol,["cn","naviera","shipments","ve"].map(module_id=>({module_id,can_view:module_id===perfil.etapa,can_edit:module_id===perfil.etapa && perfil.edicion})));
+        const id=usuario(perfil.rol,"ve","ve"),idTestigo=usuario(perfil.rol,"ve","ve");
+        async function abrirPerfilFijo(sujeto:string){
+          const navegador=await browser.newContext({viewport:{width,height:900},hasTouch:width===390,isMobile:width===390,serviceWorkers:"block"});
+          await navegador.addInitScript(tema=>{const aplicar=()=>{document.documentElement.dataset.theme=tema;};if(document.documentElement)aplicar();else document.addEventListener("DOMContentLoaded",aplicar,{once:true});},tema);
+          let sesion="",comandosCn=0,finanzas=0;
+          const inesperadas:string[]=[];
+          let entregar:(cuenta:Awaited<ReturnType<typeof entrar>>)=>void=()=>{throw new Error("No se preparó el receptor del canje.");};
+          const canje=new Promise<Awaited<ReturnType<typeof entrar>>>(resolver=>{entregar=resolver;});
+          await navegador.route("**/*",async ruta=>{
+            const req=ruta.request(),u=new URL(req.url());
+            if([real,prueba].includes(u.origin) && u.pathname==="/app.js")return ruta.fulfill({contentType:"application/javascript",body:js});
+            if([real,prueba].includes(u.origin) && u.pathname==="/app.css")return ruta.fulfill({contentType:"text/css",body:css});
+            if([real,prueba].includes(u.origin) && ["/nunito.woff2","/sora.woff2"].includes(u.pathname))return ruta.fulfill({contentType:"font/woff2",body:readFileSync(u.pathname==="/nunito.woff2" ? "lib/font-files/nunito-sans-latin-wght.woff2" : "lib/font-files/sora-latin-wght.woff2")});
+            if(u.origin===real && u.pathname==="/studio/perfil" || u.origin===prueba && u.pathname==="/studio/practica")return ruta.fulfill({contentType:"text/html",body:'<html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body class="studio-sys"><div id="app"></div><script src="/app.js"></script></body></html>'});
+            if(u.origin===real && u.pathname===API_PRACTICA+"emitir"){
+              const r=await solicitar(real,"emitir",{},{usuario:sujeto});return ruta.fulfill({status:r.status,json:await r.json()});
+            }
+            if(u.origin===prueba && u.pathname===API_PRACTICA+"canjear"){
+              const r=await solicitar(prueba,"canjear",req.postDataJSON()),vista=await r.json(),cookie=r.cookies.get(COOKIE_PRACTICA);
+              if(r.status!==200 || !cookie || !vista.espacio)throw new Error("El canje no confirmó la copia personal.");
+              sesion=cookie.value;entregar({pase:req.postDataJSON().pase,sesion,vista});return ruta.fulfill({status:r.status,json:vista});
+            }
+            if(u.origin===prueba && config.rutaDelReceptor(u.pathname,req.method(),!!req.headers()["next-action"])){
+              if(req.postDataJSON()?.comando?.accion==="ejercicio")comandosCn++;
+              if(u.pathname===API_PRACTICA+"facturacion")finanzas++;
+              const r=await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),sesion,req.headers().origin);
+              return ruta.fulfill({status:r.status,json:await r.json()});
+            }
+            inesperadas.push(req.method()+" "+u.href);return ruta.abort();
+          });
+          const origen=await navegador.newPage();await origen.goto(real+"/studio/perfil");await origen.getByRole("button",{name:"Mi perfil",exact:true}).click();
+          const apertura=origen.waitForEvent("popup");await origen.getByRole("button",{name:"Entrar a modo de prueba",exact:true}).click();
+          const pagina=await apertura,cuenta=await canje;
+          const region=pagina.getByRole("region",{name:"Viajes parciales y recepción física de práctica",exact:true});
+          await esperar(region.getByLabel("Ejercicio de destino",{exact:true})).toHaveValue("preparado");
+          await esperar(region.getByRole("list",{name:"Cajas del viaje",exact:true}).getByRole("listitem")).toHaveCount(2);
+          return {navegador,pagina,region,cuenta,comprobar:()=>{expect(comandosCn).toBe(0);expect(finanzas).toBe(0);expect(inesperadas).toEqual([]);}};
+        }
+        const propia=await abrirPerfilFijo(id),testigo=await abrirPerfilFijo(idTestigo);
+        try {
+          expect(propia.cuenta.vista.espacio).not.toBe(testigo.cuenta.vista.espacio);
+          const {pagina,region}=propia;
+          await esperar(pagina.getByRole("region",{name:"China de principio a fin",exact:true})).toHaveCount(0);
+          await esperar(region.getByLabel("Vista de destino",{exact:true})).toHaveValue(perfil.etapa);
+          await esperar(region.getByText("Frágil / 易碎 · CN",{exact:true})).toHaveCount(2);
+          for(const funcion of ["Viajes parciales","Recepción física por caja","Observación de destino"]){
+            const ayuda=region.getByLabel(`Ayuda: ${funcion}`,{exact:true});
+            await ayuda.focus();await ayuda.press("Enter");await esperar(ayuda.locator("..")).toHaveAttribute("open","");
+            if(funcion==="Observación de destino")await esperar(region.getByText(/Faro no está disponible/)).toBeVisible();
+            await ayuda.press("Enter");
+            if(width===390){await ayuda.tap();await esperar(ayuda.locator("..")).toHaveAttribute("open","");await ayuda.tap();}
+          }
+          const selector=region.getByLabel("Consolidado de destino",{exact:true}),estado=region.getByRole("status",{name:"Estado del viaje",exact:true});
+          await selector.selectOption(CONSOLIDADOS_CHINA[1]);
+          await esperar(region.getByRole("heading",{name:new RegExp(CONSOLIDADOS_CHINA[1])})).toBeVisible();
+          await esperar(region.getByText("Frágil / 易碎 · CN",{exact:true})).toHaveCount(1);
+          await selector.selectOption(CONSOLIDADOS_CHINA[0]);
+          await esperar(region.getByRole("heading",{name:new RegExp(CONSOLIDADOS_CHINA[0])})).toBeVisible();
+          if(!perfil.edicion){
+            await esperar(region.getByText("Solo consulta: puedes revisar las cajas y su estado con tu permiso vigente.",{exact:true})).toBeVisible();
+            await esperar(region.getByRole("button",{name:/^(Embarcar|Registrar llegada|Recibir caja|Registrar observación|Resolver observación)/})).toHaveCount(0);
+            expect((await solicitar(prueba,"china",{espacio:propia.cuenta.vista.espacio,etapa:perfil.etapa,consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado",revision:0,
+              destino:{id:randomUUID(),caso:"preparado",consolidado:CONSOLIDADOS_CHINA[0],accion:"registrar_llegada"}},{sesion:propia.cuenta.sesion})).status).toBe(403);
+          }else if(perfil.etapa==="shipments"){
+            await region.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true}).click();await esperar(estado).toContainText("En tránsito");
+            await esperar(testigo.region.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true})).toBeEnabled();
+            await esperar(region.getByLabel("Vista de destino",{exact:true}).locator("option[value=ve]")).toHaveCount(0);
+          }else{
+            await esperar(estado).toContainText("En tránsito");
+            await region.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true}).click();
+            await esperar(estado).toContainText("Llegada física registrada");
+            await region.getByRole("button",{name:"Registrar observación aduanal ficticia",exact:true}).click();
+            await pagina.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Observación logística preparada de muestra");
+            await pagina.getByRole("button",{name:"Confirmar observación ficticia",exact:true}).click();
+            await esperar(region.getByLabel("Código DTD-B en destino",{exact:true})).toBeDisabled();
+            await region.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true}).click();
+            await pagina.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Revisión inventada confirmada en destino");
+            await pagina.getByRole("button",{name:"Confirmar resolución ficticia",exact:true}).click();
+            await esperar(pagina.getByRole("dialog",{name:"Resolver observación ficticia",exact:true})).toHaveCount(0);
+            await esperar(region.getByText("Observación de destino: resuelta.",{exact:true})).toBeVisible();
+            const recibir=async(codigo:string)=>{
+              const input=region.getByLabel("Código DTD-B en destino",{exact:true});
+              await esperar(input).toBeEnabled();await esperar(input).toHaveValue("");
+              await input.pressSequentially(codigo);await esperar(input).toHaveValue(codigo);
+              await input.press("Enter");await esperar(input).toHaveValue("");await esperar(input).toBeEnabled();
+            };
+            await recibir(CAJAS_DESTINO_PREPARADO[0]);await esperar(estado).toContainText("1 de 2 cajas");
+            const primeraLectura=await (await solicitar(prueba,"china",{espacio:propia.cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:propia.cuenta.sesion})).json();
+            expect(primeraLectura.viaje.recibidas).toEqual([CAJAS_DESTINO_PREPARADO[0]]);
+            await recibir(CAJAS_DESTINO_PREPARADO[0]);await esperar(estado).toContainText("1 de 2 cajas");
+            const repetida=await (await solicitar(prueba,"china",{espacio:propia.cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:propia.cuenta.sesion})).json();
+            expect(repetida).toEqual(primeraLectura);
+            await recibir(CAJAS_DESTINO_PREPARADO[1]);await esperar(estado).toContainText("Recepción física completa");
+            await esperar(testigo.region.getByRole("status",{name:"Estado del viaje",exact:true})).toContainText("En tránsito");
+          }
+          await pagina.reload();
+          await esperar(region.getByRole("list",{name:"Cajas del viaje",exact:true}).getByRole("listitem")).toHaveCount(2);
+          if(perfil.edicion)await esperar(estado).toContainText(perfil.etapa==="ve" ? "2 de 2 cajas" : "En tránsito");
+          await selector.selectOption(CONSOLIDADOS_CHINA[1]);
+          await esperar(region.getByRole("heading",{name:new RegExp(CONSOLIDADOS_CHINA[1])})).toBeVisible();
+          if(perfil.etapa==="ve")await esperar(estado).toContainText("En tránsito · Recepción física: 0 de 2 cajas");else await esperar(estado).toHaveCount(0);
+          // La captura completa conserva la franja en su posición real; recortar
+          // la región desplazaba el sticky sobre el texto del propio recorte.
+          await pagina.evaluate(()=>window.scrollTo(0,0));
+          await pagina.screenshot({path:resolve(carpeta,`preparado-${perfil.rol}-${width}-${tema}.png`),fullPage:true});
+          expect(await pagina.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+          const ajena=await solicitar(prueba,"china",{espacio:testigo.cuenta.vista.espacio,etapa:perfil.etapa,consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:propia.cuenta.sesion});expect(ajena.status).toBe(403);
+          const financieros=await db.query<{valor:unknown}>("select public.practica_facturacion($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,createHash("sha256").update(propia.cuenta.sesion).digest("hex")]);expect(financieros.rows[0].valor).toBeNull();
+          propia.comprobar();testigo.comprobar();expect(usuarios.get(id)).toMatchObject({role:perfil.rol,region:"ve",warehouse_scope:"ve"});
+          const recibo=`${perfil.rol}-${perfil.etapa}-${width}-${tema}`;matriz.push(recibo);console.log(`PASÓ perfil preparado ${recibo}: Mi perfil, copia nueva, testigo intacto, sin acciones China ni facturas.`);
+        }finally{await propia.navegador.close();await testigo.navegador.close();ajustesPorRol.delete(perfil.rol);}
+      }
+      if(process.env.PRACTICA_RECIBO)writeFileSync(process.env.PRACTICA_RECIBO+".preparados.json",JSON.stringify(matriz));
+    }finally{await browser.close();}
+  },180000);
 
   it("rechaza acceso anónimo, otro sitio, canal inválido, y fallos de comunicación", async () => {
     expect((await solicitar(real,"emitir",{})).status).toBe(403);

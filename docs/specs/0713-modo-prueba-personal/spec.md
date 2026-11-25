@@ -97,6 +97,8 @@ La lista de archivos de producto se concretará en cada fase sobre su base revis
 
 Contrato operativo local y límites financieros de China/Consolidado: [fase 3](fase-3.md).
 
+Contrato de Embarques y Venezuela: [fase 4](fase-4.md).
+
 ## Recorrido completo de China en la fase 3
 El ejercicio aditivo usa cuatro cajas anunciadas de una compra: tres llegan,
 dos se montan en A, quedan una recibida y una por llegar; tras la segunda llegada,
