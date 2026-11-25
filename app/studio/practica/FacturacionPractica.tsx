@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { API_PRACTICA } from "@/lib/studio/practica/contrato";
 import { totalPractica, erroresLineaPractica, type FacturacionPractica as Datos, type ComandoFactura, type LineaPractica } from "@/lib/studio/practica/facturacion";
 import estilos from "./practica.module.css";
@@ -11,8 +11,9 @@ const dinero = (centavos: number) => Number.isSafeInteger(centavos) ? new Intl.N
 function Ayuda({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return <details><summary aria-label={`Ayuda: ${titulo}`}>ⓘ {titulo}</summary><p>{children}</p></details>;
 }
-export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSalida }: { espacio: string; suspendida?: boolean; onBloqueoSalida: (bloqueada: boolean) => void }) {
+export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSalida, onReinicio, solicitudDocumento }: { espacio: string; suspendida?: boolean; onBloqueoSalida: (bloqueada: boolean) => void; onReinicio?: () => void; solicitudDocumento?: {codigo: string; id: number} }) {
   const [vista, setVista] = useState<Vista>();
+  const solicitudAtendida = useRef<number>(0);
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const bloqueo = useRef(false);
@@ -41,6 +42,7 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       const datos = await res.json();
       if (!res.ok) throw new Error(datos?.error ?? "No se pudo consultar la práctica.");
       setVista(datos); setPrevia(""); setConfirmacion(null);
+      if (comando?.accion === "reiniciar") onReinicio?.();
       const cargadas = datos.documento.facturas.find((f: { codigo: string }) => f.codigo === seleccion)?.lineas ?? [];
       setLineas(cargadas); setIdentificadores(nuevasIdentidades(cargadas.length));
       setTextoPendiente(false); setVersionEditor(v => v + 1);
@@ -84,8 +86,15 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
   function reemplazarLineas(nuevas: LineaPractica[]) {
     setLineas(nuevas); setIdentificadores(nuevasIdentidades(nuevas.length)); setTextoPendiente(true); setVersionEditor(v => v + 1);
   }
+  useLayoutEffect(() => {
+    if (!solicitudDocumento || solicitudAtendida.current === solicitudDocumento.id || !vista || ocupado) return;
+    solicitudAtendida.current = solicitudDocumento.id;
+    if (!vista.documento.facturas.some(f => f.codigo === solicitudDocumento.codigo)) return;
+    if (sucio) setDescarte(solicitudDocumento.codigo);
+    else { cambiarDocumento(solicitudDocumento.codigo); document.getElementById("titulo-facturacion")?.focus(); }
+  }, [solicitudDocumento, vista, ocupado]); // eslint-disable-line react-hooks/exhaustive-deps
   return <section aria-labelledby="titulo-facturacion" className={estilos.facturacion}>
-    <h2 id="titulo-facturacion">Facturación de práctica</h2>
+    <h2 id="titulo-facturacion" tabIndex={-1}>Facturación de práctica</h2>
     <p>Solo datos inventados. Tu avance se guarda en tu copia personal.</p>
     <button type="button" disabled={ocupado} onClick={() => { if (sucio) setDescarte("recargar"); else void pedir(); }}>Recargar avance y permisos</button>
     {error && !confirmacion && <p ref={avisoError} tabIndex={-1} role="alert">{error}</p>}
@@ -133,13 +142,13 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       <button type="button" disabled={!vista.edicion || ocupado} onClick={() => setConfirmacion("reiniciar")}>Reiniciar mi práctica</button>
       <Ayuda titulo="Reanudar y reiniciar">Salir conserva el avance. Reiniciar restablece tus dos ejemplos y conserva el historial de ejercicios; no cambia la copia de otra persona. Cancela para conservar el avance actual.</Ayuda>
       <ConfirmDialog open={!!confirmacion} title={confirmacion === "reiniciar" ? "Reiniciar mi práctica" : "Anular factura ficticia"}
-        message={confirmacion === "reiniciar" ? "Se restablecerán tus facturas y pagos ficticios. Tu historial se conserva." : `Se anulará ${factura.codigo}; el original y el motivo se conservarán.`}
+        message={confirmacion === "reiniciar" ? "Se restablecerán tus facturas, pagos ficticios y cargas de China y Consolidado. Tu historial se conserva." : `Se anulará ${factura.codigo}; el original y el motivo se conservarán.`}
         danger reason={confirmacion === "anular"} reasonRequired reasonLabel="Motivo ficticio" pending={ocupado} error={error}
         confirmLabel={`Confirmar ${confirmacion}`} onCancel={() => setConfirmacion(null)}
         onConfirm={motivo => { if (confirmacion) void pedir({accion:confirmacion,codigo:seleccion,motivo}); }} />
       <ConfirmDialog open={!!descarte} title="Descartar conceptos sin guardar" message="Los conceptos sin guardar se perderán; el documento guardado se conserva."
         confirmLabel="Descartar conceptos" pending={ocupado} onCancel={() => setDescarte(null)} onConfirm={() => {
-          if (descarte === "recargar") void pedir(); else if (descarte) cambiarDocumento(descarte);
+          if (descarte === "recargar") void pedir(); else if (descarte) { cambiarDocumento(descarte); document.getElementById("titulo-facturacion")?.focus(); }
           setDescarte(null);
         }} />
       <details><summary>Historial de esta copia · generación {vista.documento.generacion}</summary><ol>{vista.documento.eventos.map((e, i) => <li key={i}>{e.fecha}: {e.accion} · {e.codigo} {e.motivo}</li>)}</ol></details>

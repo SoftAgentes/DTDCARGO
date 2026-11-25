@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { API_PRACTICA, AVISO_LISTO, AVISO_PASE, AVISO_ABIERTA, esToken, esVistaPractica, MODULOS_PRACTICA, type VistaPractica } from "@/lib/studio/practica/contrato";
 import estilos from "./practica.module.css";
 import { FacturacionPractica } from "./FacturacionPractica";
+import { ChinaPractica } from "./ChinaPractica";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 
 const ESPACIO_DE_PESTANA = "dtd-practica-espacio";
@@ -25,7 +26,16 @@ export function PracticaPersonal({ real }: { real: string }) {
   const [vista, setVista] = useState<VistaPractica | null>(null);
   const [mensaje, setMensaje] = useState("Comprobando tu acceso…");
   const [saliendo, setSaliendo] = useState(false);
+  const [reinicio, setReinicio] = useState(0);
+  const [documentoPedido, setDocumentoPedido] = useState<{codigo: string; id: number}>();
   const [salidaBloqueada, setSalidaBloqueada] = useState(false);
+  const bloqueos = useRef({ financiero: false, operativo: false });
+  const cambiarBloqueo = useCallback((motivo: "financiero" | "operativo", activo: boolean) => {
+    bloqueos.current[motivo] = activo;
+    setSalidaBloqueada(bloqueos.current.financiero || bloqueos.current.operativo);
+  }, []);
+  const bloqueoFinanciero = useCallback((activo: boolean) => cambiarBloqueo("financiero", activo), [cambiarBloqueo]);
+  const bloqueoOperativo = useCallback((activo: boolean) => cambiarBloqueo("operativo", activo), [cambiarBloqueo]);
   const [revalidando, setRevalidando] = useState(true);
   const [falloComprobacion, setFalloComprobacion] = useState(false);
   const [confirmarSalida, setConfirmarSalida] = useState(false);
@@ -135,7 +145,8 @@ export function PracticaPersonal({ real }: { real: string }) {
     };
   }, [real, consultar]);
 
-  async function salir() {
+  async function salir(descartar = false) {
+    if (bloqueos.current.operativo || saliendo || (!descartar && (bloqueos.current.financiero || revalidando))) return;
     salidaEnCurso.current = true;
     ++ultimaConsulta.current; consultaActual.current?.abort();
     restaurarFoco.current = null;
@@ -161,14 +172,15 @@ export function PracticaPersonal({ real }: { real: string }) {
     <main ref={pagina} className={estilos.pagina}>
       <header className={estilos.franja}>
         <strong>Modo de prueba · Datos inventados</strong>
-        <button type="button" className="studio-btn studio-btn-dark" onClick={salir} disabled={saliendo || salidaBloqueada || revalidando} title={salidaBloqueada ? "Espera la operación o guarda o descarta tus conceptos." : undefined}>
+        <button type="button" className="studio-btn studio-btn-dark" onClick={() => void salir()} disabled={saliendo || salidaBloqueada || revalidando} title={salidaBloqueada ? "Espera la operación o guarda o descarta tus conceptos." : undefined}>
           {saliendo ? "Volviendo…" : "Volver al Studio real"}
         </button>
       </header>
       <section className={estilos.contenido} aria-labelledby="titulo-practica">
         <h1 id="titulo-practica">Mi práctica</h1>
         {mensaje && <p role="status">{mensaje}</p>}
-        {cierrePendiente && <button type="button" onClick={() => {
+        {cierrePendiente && <button type="button" disabled={bloqueos.current.operativo} onClick={() => {
+          if (bloqueos.current.operativo) return;
           salidaEnCurso.current = true;
           ++ultimaConsulta.current; consultaActual.current?.abort();
           sessionStorage.removeItem(ESPACIO_DE_PESTANA);
@@ -177,10 +189,11 @@ export function PracticaPersonal({ real }: { real: string }) {
         {revalidando && !falloComprobacion && <p role="status">Comprobando identidad y permisos…</p>}
         {revalidando && <div>
           {falloComprobacion && <button type="button" onClick={() => void consultar(new AbortController().signal)}>Reintentar comprobación</button>}
-          <button type="button" disabled={saliendo} onClick={() => setConfirmarSalida(true)}>Descartar edición y volver al Studio real</button>
+          <button type="button" disabled={saliendo || bloqueos.current.operativo} onClick={() => setConfirmarSalida(true)}>Descartar edición y volver al Studio real</button>
         </div>}
         {vista && <div ref={editor} inert={revalidando} style={{ visibility: revalidando ? "hidden" : "visible" }}>
-          {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={`${vista.espacio}:${vista.permisos.find(p => p.id === "invoices")?.edicion}`} espacio={vista.espacio} suspendida={revalidando} onBloqueoSalida={setSalidaBloqueada} />}
+          {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={`${vista.espacio}:${vista.permisos.find(p => p.id === "invoices")?.edicion}`} espacio={vista.espacio} suspendida={revalidando} onBloqueoSalida={bloqueoFinanciero} solicitudDocumento={documentoPedido} onReinicio={() => setReinicio(n => n + 1)} />}
+          {vista.permisos.some(p => p.id === "cn" || p.id === "naviera") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} onBloqueoSalida={bloqueoOperativo} onAbrirFactura={codigo => setDocumentoPedido(actual => ({codigo,id:(actual?.id ?? 0)+1}))} onReinicio={() => setReinicio(n => n + 1)} />}
           <h2>Permisos de tu práctica</h2>
           {vista.permisos.length ? <ul className={estilos.modulos}>
             {vista.permisos.map(p => <li key={p.id}>
@@ -190,7 +203,7 @@ export function PracticaPersonal({ real }: { real: string }) {
           </ul> : <p>Tu rol actual no tiene acceso a los módulos de este recorrido.</p>}
         </div>}
       </section>
-      <ConfirmDialog open={confirmarSalida} title="Descartar la edición sin guardar" message="Se eliminarán los cambios que solo están en este editor. El avance ya guardado permanece en tu práctica." confirmLabel="Descartar y salir" cancelLabel="Seguir aquí" danger onConfirm={() => void salir()} onCancel={() => setConfirmarSalida(false)} />
+      <ConfirmDialog open={confirmarSalida} title="Descartar la edición sin guardar" message="Se eliminarán los cambios que solo están en este editor. El avance ya guardado permanece en tu práctica." confirmLabel="Descartar y salir" cancelLabel="Seguir aquí" danger pending={saliendo || bloqueos.current.operativo} onConfirm={() => void salir(true)} onCancel={() => setConfirmarSalida(false)} />
     </main>
   );
 }
