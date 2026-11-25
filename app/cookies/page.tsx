@@ -15,7 +15,7 @@ import { CONTACT } from "@/lib/design-tokens";
 
 const DESC =
   "Política de Cookies de DTD Cargo — qué cookies usamos, cuáles son opcionales y cómo cambiar tu consentimiento.";
-const UPDATED = "12 de julio de 2026";
+const UPDATED = "20 de noviembre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Cookies",
@@ -114,6 +114,18 @@ const ANALITICA: Row[] = [
     duracion: "2 años",
     para: "Mantener el estado de la sesión de analítica.",
   },
+  {
+    cookie: "_clck",
+    quien: "Microsoft Clarity",
+    duracion: "1 año",
+    para: "Reconocer de forma seudónima que es el mismo navegador entre visitas.",
+  },
+  {
+    cookie: "_clsk",
+    quien: "Microsoft Clarity",
+    duracion: "1 día",
+    para: "Unir las páginas de una misma visita.",
+  },
 ];
 
 const PUBLICIDAD: Row[] = [
@@ -190,9 +202,11 @@ export default function CookiesPage() {
                     Mientras solo navegas y lees el sitio, no instalamos ninguna
                     cookie opcional.
                   </strong>{" "}
-                  Las cookies de analítica y publicidad de Google arrancan en un
-                  modo restringido, sin almacenar información en tu equipo, hasta
-                  que das tu consentimiento.
+                  Las herramientas de analítica y publicidad (Google y Microsoft
+                  Clarity) arrancan en un modo restringido, sin guardar nada en tu
+                  equipo, hasta que das tu consentimiento. En ese modo, Microsoft
+                  Clarity igual registra cómo usas cada página por separado (ver
+                  sección 3c).
                 </li>
                 <li>
                   Cuando vas a <strong>registrarte o iniciar sesión</strong> en el
@@ -235,12 +249,28 @@ export default function CookiesPage() {
               </h3>
               <CookieTable rows={ANALITICA} />
               <p className="mt-3 text-[13px] leading-[1.6] text-grey-500">
-                Usamos Google Analytics 4 solo en las páginas públicas de
-                marketing. <strong>Nunca</strong> cargamos analítica dentro del
-                Portal del Cliente ni en páginas cuya dirección contenga datos
-                tuyos (tu número de cliente / Shipping Mark, tokens o enlaces
-                personales): esas zonas quedan excluidas para no enviar información
-                personal a Google.
+                Usamos Google Analytics 4 y Microsoft Clarity{" "}
+                <strong>solo en las páginas públicas</strong> del sitio. Ninguno
+                de los dos carga dentro del Portal del Cliente, en el inicio de
+                sesión ni en páginas cuya dirección contenga datos tuyos (tu
+                número de cliente o Shipping Mark, tokens o enlaces personales).
+                Microsoft Clarity tampoco carga en el registro ni en el
+                cotizador, porque ahí podría grabar lo que escribes; Google
+                Analytics 4 sí cuenta las visitas a esas páginas y si se completa
+                el registro, sin grabar lo que escribes. Esas zonas quedan
+                excluidas para no enviar información personal a terceros.
+              </p>
+              <p className="mt-3 text-[13px] leading-[1.6] text-grey-500">
+                <strong>Qué hace Microsoft Clarity.</strong> Clarity nos muestra
+                cómo se usan las páginas: dónde haces clic, hasta dónde bajas y si
+                algo no responde. Para eso reconstruye tu visita a partir de esos
+                movimientos; no graba tu pantalla ni tu cámara. Lo que escribes en
+                formularios, los números y los correos se ocultan{" "}
+                <strong>en tu navegador</strong>, antes de enviarse. Si no aceptas
+                las cookies, Clarity funciona sin ellas: ve cada página por
+                separado y no puede unir tu visita. Microsoft guarda las
+                grabaciones <strong>30 días</strong> y los datos de clics y mapas
+                de calor <strong>9 meses</strong>.
               </p>
 
               <h3 className={H3}>
@@ -268,9 +298,11 @@ export default function CookiesPage() {
                   controles de seguridad a nivel de base de datos.
                 </li>
                 <li>
-                  <strong>No compartimos</strong> los datos de tu Portal con Google
-                  ni con ninguna plataforma de publicidad o analítica. La analítica
-                  del sitio y los datos del Portal están completamente separados.
+                  <strong>No compartimos</strong> los datos de tu Portal con
+                  Google, con Microsoft ni con ninguna plataforma de publicidad o
+                  analítica. La analítica del sitio y los datos del Portal están
+                  separados. Si algún día quisiéramos medir el uso del Portal, te lo
+                  avisaremos antes y cambiaremos primero esta política.
                 </li>
                 <li>
                   Los documentos y archivos que subes no se guardan en cookies: se
@@ -282,11 +314,14 @@ export default function CookiesPage() {
             <article>
               <h2 className={H2}>5. Terceros que instalan cookies</h2>
               <p className={P}>
-                El único tercero que puede instalar cookies en tu navegador a
-                través de nuestro sitio es <strong>Google</strong> (Google
-                Analytics 4 y Google Ads), y <strong>solo si aceptas</strong> las
-                cookies opcionales. Puedes consultar cómo trata Google la
-                información en{" "}
+                Los terceros que pueden instalar cookies en tu navegador a través
+                de nuestro sitio son <strong>Google</strong> (Google Analytics 4 y
+                Google Ads) y <strong>Microsoft</strong> (Clarity), y{" "}
+                <strong>solo si aceptas</strong> las cookies opcionales. Las
+                cookies de Clarity (<code className="text-[13px]">_clck</code> y{" "}
+                <code className="text-[13px]">_clsk</code>) quedan guardadas bajo
+                nuestro dominio; no permitimos las cookies publicitarias de
+                Microsoft. Puedes consultar cómo tratan la información{" "}
                 <a
                   href="https://policies.google.com/privacy"
                   target="_blank"
@@ -294,9 +329,9 @@ export default function CookiesPage() {
                   className="underline underline-offset-2"
                   style={{ color: "var(--color-accion-text)" }}
                 >
-                  su política de privacidad
-                </a>{" "}
-                y en{" "}
+                  la política de privacidad de Google
+                </a>
+                ,{" "}
                 <a
                   href="https://policies.google.com/technologies/cookies"
                   target="_blank"
@@ -305,6 +340,16 @@ export default function CookiesPage() {
                   style={{ color: "var(--color-accion-text)" }}
                 >
                   cómo usa Google las cookies
+                </a>{" "}
+                y{" "}
+                <a
+                  href="https://www.microsoft.com/privacy/privacystatement"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2"
+                  style={{ color: "var(--color-wine)" }}
+                >
+                  la declaración de privacidad de Microsoft
                 </a>
                 .
               </p>
@@ -321,7 +366,9 @@ export default function CookiesPage() {
                 <li>
                   <strong>Analítica y publicidad:</strong> se usan{" "}
                   <strong>con base en tu consentimiento</strong>, que puedes
-                  otorgar o retirar libremente en cualquier momento.
+                  otorgar o retirar libremente en cualquier momento. Sin
+                  consentimiento, Microsoft Clarity solo registra la interacción
+                  con cada página por separado, sin cookies, para mejorar el sitio.
                 </li>
               </ul>
             </article>
