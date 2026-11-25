@@ -7,7 +7,7 @@
  * Casos de uso (Studio):
  *   - PESO (kg): "236" o "233+2" → muestra "= 235,00 kg" debajo
  *   - CBM (m³): "0,45 + 0,32 + 0,18" → "= 0,95 m³"
- *   - TARIFA (USD): "12.323,50" → "$" izquierda + "= 12.323,50" debajo
+ *   - TARIFA (USD): "12323,50" → "$" izquierda + "= 12.323,50" debajo
  *   - # CAJAS (count): "5+3+7" → "= 15"
  *
  * Características:
@@ -15,16 +15,15 @@
  *     parseNumericExpression (whitelist segura).
  *   - Cada campo tiene un modo (SDD-0687 §4.2): dinero, tasa, porcentaje o
  *     medida. `currency` es dinero; `weight`, `volume` y `count` son medida;
- *     `decimal` obliga a declarar el modo. En dinero «1.234» y «1,234» se
- *     rechazan y se pide aclarar; «12.50» se acepta como 12,50 (decisión 6 A).
- *     En medida el punto o la coma son decimales (decisión 2 A).
+ *     `decimal` obliga a declarar el modo. Opción A: punto o coma únicos
+ *     son decimales; se rechaza la agrupación de miles en cada literal.
  *   - Acepta valores pegados con adornments ($ 1200, 236 kg) · los
  *     limpia automáticamente.
  *   - Adornment lateral fijo (símbolo $ a la izquierda en currency,
  *     unidad "kg" / "m³" a la derecha en weight/volume/count).
  *   - Debajo, lo que entendió en formato venezolano: punto de miles y coma
- *     decimal («= 1.234,50»). La tasa se ve con 2 a 4 decimales (decisión 5 B).
- *   - Un texto rechazado (ambiguo, con formato de EE. UU. o con más decimales
+ *     decimal («= 1.234,50»), sin ocultar decimales del resultado válido.
+ *   - Un texto rechazado (agrupado o con más decimales
  *     de los del campo) no deja vivo el valor anterior: emite `null`, para
  *     que nunca se guarde un monto intermedio mil veces menor.
  *   - Hidden input con el decimal canónico para form submission.
@@ -285,8 +284,7 @@ export function NumericInput({
       return;
     }
     if (result.status === "invalid") {
-      // SDD-0687: «1.234» en dinero no puede dejar vivo el «1.23» que se
-      // tecleó antes; el campo queda sin valor hasta que se aclare.
+      // Una entrada rechazada no conserva el monto intermedio tecleado antes.
       if (lastValid !== null) {
         setLastValid(null);
         onChange?.(null);
@@ -482,16 +480,17 @@ function buildPreview(args: BuildPreviewArgs): ReactNode {
 
   // Lo entendido, en formato venezolano (SDD-0687).
   // CBM: hasta 4 decimales sin ceros de relleno (lib/shared/cbm).
-  // Tasa: de 2 a 4 decimales (decisión 5 B).
-  // Medida: nunca esconde un decimal tecleado (decisión 2 A: «= 1,234»).
+  // Tasa: mínimo 2; conserva cualquier decimal válido del resultado.
+  // Ningún modo esconde un decimal válido del resultado (opción A).
+  const resultDecimals = parsed.canonical?.split(".")[1]?.length ?? 0;
   const formatted =
     type === "volume" && precisionIsDefault
       ? formatCbm(parsed.value, { locale: "es-VE" })
       : modo === "tasa" && precisionIsDefault
-        ? formatNumber(parsed.value, 2, 4)
+        ? formatNumber(parsed.value, 2, Math.max(4, resultDecimals))
         : modo === "medida"
           ? formatNumber(parsed.value, precision, Math.max(precision, maxDecimals))
-          : formatNumber(parsed.value, precision);
+          : formatNumber(parsed.value, precision, Math.max(precision, resultDecimals));
   if (type === "currency") {
     return `= ${formatted}`;
   }
@@ -532,7 +531,7 @@ function canonicalOf(n: number): string {
 /**
  * Texto que se deja en el campo al confirmar o al recibir un valor: el
  * decimal con coma y sin miles («1234,5»). Así se vuelve a leer igual en
- * todos los modos: «36.512» en tasa se pediría aclarar; «36,512» no.
+ * todos los modos y no introduce agrupación de miles en la edición.
  */
 function toEditableText(canonical: string): string {
   return canonical.replace(".", ",");

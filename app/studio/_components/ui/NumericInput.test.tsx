@@ -61,7 +61,7 @@ describe("NumericInput · NUM-01 v1.1", () => {
   it.each([
     ["0.1 + 0.2", "0.3", 0.3],
     ["1,5 + 2,5", "4", 4],
-    ["1.200,50 + 2.300,50", "3501", 3501],
+    ["1200,50 + 2300,50", "3501", 3501],
   ])(
     "envía decimal canónico para %s",
     (expression, canonical, numericValue) => {
@@ -112,7 +112,7 @@ describe("NumericInput · CBM (type=volume) hasta 4 decimales", () => {
   });
 });
 
-describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
+describe("NumericInput · SDD-0687 opción A, entrada sin miles y salida 1.234,50", () => {
   // Las combinaciones de prueba se arman a mano; el tipo estricto lo cubre el
   // último caso (`type="decimal"` sin modo no compila).
   const Campo = NumericInput as unknown as ComponentType<Record<string, unknown>>;
@@ -134,7 +134,7 @@ describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
 
   it("dinero: el eco muestra «= 1.234,50»", () => {
     const { input, hidden, preview } = renderCon({ type: "currency" });
-    fireEvent.change(input, { target: { value: "1.234,50" } });
+    fireEvent.change(input, { target: { value: "1234,50" } });
     expect(preview).toHaveTextContent("= 1.234,50");
     expect(hidden).toHaveValue("1234.5");
   });
@@ -146,7 +146,7 @@ describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
     expect(hidden).toHaveValue("12.5");
   });
 
-  it("dinero: «1.234» se rechaza, pide aclarar y no deja vivo el 1,23 tecleado antes", () => {
+  it("dinero: «1.234» excede la precisión y no deja vivo el 1,23 tecleado antes", () => {
     const { input, hidden, onChange, container } = renderCon({ type: "currency" });
     for (const paso of ["1", "1.", "1.2", "1.23", "1.234"]) {
       fireEvent.change(input, { target: { value: paso } });
@@ -158,7 +158,7 @@ describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
     fireEvent.blur(input);
     expect(input).toHaveValue("1.234");
     expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByRole("alert")).toHaveTextContent("«1.234» se puede leer de dos maneras");
+    expect(screen.getByRole("alert")).toHaveTextContent("máximo 2 decimales");
     expect(screen.getByRole("form", { name: "Cifras" })).not.toBeValid();
     expect(container.textContent).not.toContain("= 1,23");
   });
@@ -170,10 +170,10 @@ describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
     expect(hidden).toHaveValue("");
   });
 
-  it("dinero: al aclarar con «1.234,00» vuelve a emitir 1234", () => {
+  it("dinero: al corregir con «1234,00» vuelve a emitir 1234", () => {
     const { input, hidden, onChange } = renderCon({ type: "currency" });
     fireEvent.change(input, { target: { value: "1.234" } });
-    fireEvent.change(input, { target: { value: "1.234,00" } });
+    fireEvent.change(input, { target: { value: "1234,00" } });
     expect(onChange).toHaveBeenLastCalledWith(1234);
     expect(hidden).toHaveValue("1234");
   });
@@ -199,15 +199,17 @@ describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
 
     fireEvent.change(input, { target: { value: "36,51259999" } });
     expect(hidden).toHaveValue("36.51259999");
-    expect(preview).toHaveTextContent("= 36,5126");
+    expect(preview).toHaveTextContent("= 36,51259999");
   });
 
-  it("tasa: «36.500» se rechaza", () => {
-    const { input, hidden } = renderCon({ type: "decimal", modo: "tasa" });
+  it("tasa: «36.500» es decimal y conserva el valor al confirmar", () => {
+    const { input, hidden, preview } = renderCon({ type: "decimal", modo: "tasa" });
     fireEvent.change(input, { target: { value: "36.500" } });
-    expect(hidden).toHaveValue("");
+    expect(hidden).toHaveValue("36.5");
+    expect(preview).toHaveTextContent("= 36,50");
     fireEvent.blur(input);
-    expect(screen.getByRole("alert")).toHaveTextContent("En la tasa el decimal va con coma");
+    expect(input).toHaveValue("36,5");
+    expect(input).toHaveAttribute("aria-invalid", "false");
   });
 
   it("tasa: un valor guardado con tres decimales se abre con coma y sigue válido", () => {
@@ -222,10 +224,10 @@ describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
 
   it("al confirmar deja el decimal con coma, que se vuelve a leer igual", () => {
     const { input, hidden } = renderCon({ type: "currency" });
-    fireEvent.change(input, { target: { value: "1.200,50 + 0,50" } });
+    fireEvent.change(input, { target: { value: "1200,50 + 0,50" } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(input).toHaveValue("1201");
-    fireEvent.change(input, { target: { value: "1.234,5" } });
+    fireEvent.change(input, { target: { value: "1234,5" } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(input).toHaveValue("1234,5");
     expect(hidden).toHaveValue("1234.5");
@@ -250,23 +252,102 @@ describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
     expect(hidden).toHaveValue("3.4985");
   });
 
-  it("precio por ft³: la coma de tres cifras es decimal; el punto pide aclarar (H1 de la #790)", () => {
+  it("precio por ft³: punto y coma son decimales, sin ocultar precisión", () => {
     const { input, hidden } = renderCon({ type: "currency", precision: 2, decimales: 4 });
     fireEvent.change(input, { target: { value: "3,498" } });
     expect(hidden).toHaveValue("3.498");
     fireEvent.change(input, { target: { value: "3.498" } });
-    expect(hidden).toHaveValue("");
-    expect(input).toHaveAttribute("data-numeric-status", "invalid");
+    expect(hidden).toHaveValue("3.498");
+    expect(input).toHaveAttribute("data-numeric-status", "valid");
     fireEvent.blur(input);
-    expect(screen.getByRole("alert")).toHaveTextContent("se puede leer de dos maneras");
+    expect(input).toHaveAttribute("aria-invalid", "false");
   });
 
   it("el eco no es una región viva mientras se escribe (ERR-01)", () => {
     const { input, preview } = renderCon({ type: "currency" });
-    fireEvent.change(input, { target: { value: "1.234,50" } });
+    fireEvent.change(input, { target: { value: "1234,50" } });
     expect(preview).not.toHaveAttribute("aria-live");
     expect(preview).not.toHaveAttribute("role");
     expect(input.getAttribute("aria-describedby")).toContain(preview.id);
+  });
+
+
+  it.each([
+    [{ type: "volume" }, "0.366", "0.366", "= 0,366 m³"],
+    [{ type: "volume" }, "1250", "1250", "= 1.250 m³"],
+    [{ type: "currency" }, "1234.50", "1234.5", "= 1.234,50"],
+    [{ type: "currency", currency: "EUR" }, "1234,50", "1234.5", "= 1.234,50"],
+    [{ type: "currency", currency: "VES" }, "1234,50", "1234.5", "= 1.234,50"],
+    [{ type: "decimal", modo: "porcentaje", unit: "%" }, "12.5", "12.5", "= 12,50 %"],
+    [{ type: "currency", decimales: 4 }, "3.498", "3.498", "= 3,498"],
+    [{ type: "weight" }, "-0.366", "-0.366", "= -0,366 kg"],
+  ])("vista inmediata %s, %s", (props, texto, canonico, vista) => {
+    const { input, hidden, preview } = renderCon(props);
+    fireEvent.change(input, { target: { value: texto } });
+    expect(hidden).toHaveValue(canonico);
+    expect(preview).toHaveTextContent(vista);
+    expect(input).toHaveValue(texto);
+  });
+
+  it.each([
+    ["USD", "$"],
+    ["EUR", "€"],
+    ["VES", "Bs."],
+  ])("conserva la denominación %s y su símbolo %s", (currency, simbolo) => {
+    const { input, hidden, preview } = renderCon({ type: "currency", currency });
+    fireEvent.change(input, { target: { value: "1234.50" } });
+    expect(screen.getByText(simbolo)).toHaveAttribute("aria-hidden", "true");
+    expect(hidden).toHaveValue("1234.5");
+    expect(preview).toHaveTextContent("= 1.234,50");
+  });
+
+  it.each(["1.234,50", "1,234.50", "1.234.567", "1,234,567"])("agrupación %s invalida el monto anterior y permite corregir", (texto) => {
+    const { input, hidden, preview, onChange } = renderCon({ type: "currency" });
+    fireEvent.change(input, { target: { value: "1250" } });
+    fireEvent.change(input, { target: { value: texto } });
+    expect(hidden).toHaveValue("");
+    expect(onChange).toHaveBeenLastCalledWith(null);
+    expect(preview).not.toHaveAttribute("role");
+    fireEvent.blur(input);
+    expect(input).toHaveValue(texto);
+    expect(screen.getByRole("alert")).toHaveTextContent("Escribe el número sin puntos de miles");
+    expect(input).not.toBeValid();
+    fireEvent.change(input, { target: { value: "1234,50" } });
+    expect(hidden).toHaveValue("1234.5");
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it.each(["12.", "12,", "12+"])("parcial %s conserva el último valor y bloquea confirmar", (texto) => {
+    const { input, hidden, onChange } = renderCon({ type: "currency" });
+    fireEvent.change(input, { target: { value: "12" } });
+    fireEvent.change(input, { target: { value: texto } });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(hidden).toHaveValue("12");
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    fireEvent.blur(input);
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).not.toBeValid();
+  });
+
+  it("cero, vacío y rango conservan su validación", () => {
+    const { input, hidden, onChange } = renderCon({ type: "currency", min: 0, max: 100 });
+    fireEvent.change(input, { target: { value: "0" } });
+    expect(hidden).toHaveValue("0");
+    expect(onChange).toHaveBeenLastCalledWith(0);
+    fireEvent.change(input, { target: { value: "" } });
+    expect(hidden).toHaveValue("");
+    expect(onChange).toHaveBeenLastCalledWith(null);
+    fireEvent.change(input, { target: { value: "100" } });
+    fireEvent.change(input, { target: { value: "100.01" } });
+    expect(hidden).toHaveValue("100");
+    expect(onChange).toHaveBeenLastCalledWith(100);
+    fireEvent.blur(input);
+    expect(input).not.toBeValid();
+    expect(screen.getByRole("alert")).toHaveTextContent("Máximo 100,00");
+    fireEvent.change(input, { target: { value: "-1" } });
+    expect(input).not.toBeValid();
+    expect(screen.getByRole("alert")).toHaveTextContent("Mínimo 0,00");
   });
 
   it("type=decimal exige el modo (no hay modo por defecto)", () => {

@@ -1,38 +1,9 @@
 /**
- * Cifras tecleadas por una persona: un solo lugar para interpretarlas
- * (SDD-0687 §4.2 y §4.3, fases 1 y 2).
- *
- * Regla de Sam (2026-11-20): «la coma siempre va a ser los decimales» y, ante
- * «1.234» en dinero, «pedir que se aclare». El sistema nunca adivina un monto.
- *
- * Cada campo declara su modo; no hay modo por defecto, para que nadie lo
- * olvide (§4.2):
- *
- * | Modo        | Decimales | Separador único + tres cifras                 |
- * |-------------|-----------|-----------------------------------------------|
- * | dinero      | 2         | se rechaza y se pide aclarar (punto o coma)   |
- * | tasa        | 8         | coma = decimal; punto se rechaza y se aclara  |
- * | porcentaje  | 2, 0-100  | coma o punto = decimal; tres cifras no caben  |
- * | medida      | 4         | punto o coma = decimal (decisión 2 A)         |
- *
- * En dinero, «12.5» y «12.50» se aceptan como decimal (decisión 6 A): un punto
- * con una o dos cifras no puede ser de miles. «1,234.50» (formato de EE. UU.)
- * se rechaza en todos los modos: el formato es 1.234,50.
- *
- * La precisión máxima manda: un valor con más decimales que los del modo se
- * rechaza; no se redondea en silencio.
- *
- * Un campo de dinero que admite tres o más decimales (el precio por ft³ lleva
- * cuatro) lee «3,498» como decimal, porque la coma siempre es decimal. El punto
- * no: «3.498» sigue pidiendo aclarar, como en todo el dinero. El valor de
- * máquina que viaja oculto desde el campo («3.498») se lee con `parseMaquina`,
- * que no es la regla de lo que teclea una persona.
- *
- * Lo que devuelve es el valor de máquina (`1234.5`); mostrarlo con formato es
- * trabajo de los formateadores (fase 3). Este módulo vive en `lib/shared/`
- * porque lo usan la web pública, el Portal, el Studio y el móvil.
+ * Entrada humana, SDD-0687 opción A (2026-11-24): un solo punto o una sola
+ * coma es decimal; no se admite agrupación de miles. Cada campo conserva
+ * su modo, precisión, signo y rango. La salida visible usa 1.234,50.
+ * `parseMaquina` conserva su contrato separado para valores serializados.
  */
-
 export type ModoNumero = "dinero" | "tasa" | "porcentaje" | "medida";
 
 export const MODOS_NUMERO: readonly ModoNumero[] = [
@@ -53,7 +24,7 @@ export const DECIMALES_POR_MODO: Readonly<Record<ModoNumero, number>> = {
 export interface OpcionesNumero {
   /**
    * Decimales máximos de este campo, si difieren de los del modo (por
-   * ejemplo, un peso con 3). No cambia la regla de ambigüedad del modo.
+   * ejemplo, un peso con 3). No cambia la lectura decimal de un separador único.
    */
   decimales?: number;
 }
@@ -61,9 +32,9 @@ export interface OpcionesNumero {
 export type MotivoRechazo =
   /** No hay nada escrito. */
   | "vacio"
-  /** Falta algo: «12,» o «1.234,». */
+  /** Falta algo: «12,» o «12.». */
   | "incompleto"
-  /** Caracteres o agrupación que no son una cifra en formato 1.234,50. */
+  /** Caracteres inválidos o agrupación de miles en la entrada humana. */
   | "formato"
   /** Un separador único con tres cifras: puede ser miles o decimal. */
   | "ambiguo"
@@ -88,7 +59,7 @@ export type ResultadoLiteral =
   | Extract<ResultadoNumero, { ok: false }>;
 
 export const MENSAJE_FORMATO =
-  "El formato es 1.234,50: punto para los miles y coma para los decimales.";
+  "Escribe el número sin puntos de miles";
 
 const LITERAL_RE = /^[0-9.,]+$/;
 const NUMERO_RE = /^([+-]?)\s*([0-9.,]+)$/;
@@ -152,27 +123,9 @@ export function interpretarLiteral(
   const comas = contar(literal, ",");
   const puntos = contar(literal, ".");
 
-  if (comas > 0 && puntos > 0) {
-    // Con los dos separadores, la coma es el decimal y va al final, una vez.
-    if (modo === "porcentaje") return rechazo("formato", mensajeFormato(modo));
-    if (literal.lastIndexOf(",") < literal.lastIndexOf(".") || comas !== 1) {
-      return rechazo("formato", MENSAJE_FORMATO);
-    }
-    const [entero, fraccion] = literal.split(",");
-    if (!fraccion) return rechazo("incompleto", "Completa los decimales.");
-    if (!milesBienFormados(entero, ".")) return rechazo("formato", MENSAJE_FORMATO);
-    return cerrar(entero.replaceAll(".", ""), fraccion, modo, decimales);
-  }
-
-  if (comas > 1) {
-    // «1,234,567» es el formato de EE. UU.: aquí la coma es el decimal.
-    return rechazo("formato", mensajeFormato(modo));
-  }
-
-  if (puntos > 1) {
-    if (modo === "porcentaje") return rechazo("formato", mensajeFormato(modo));
-    if (!milesBienFormados(literal, ".")) return rechazo("formato", mensajeFormato(modo));
-    return cerrar(literal.replaceAll(".", ""), "", modo, decimales);
+  if (comas + puntos > 1) {
+    // Opción A: la agrupación pertenece a la salida, nunca a la edición humana.
+    return rechazo("formato", MENSAJE_FORMATO);
   }
 
   const separador = comas === 1 ? "," : puntos === 1 ? "." : null;
@@ -181,9 +134,6 @@ export function interpretarLiteral(
   const [entero, fraccion] = literal.split(separador);
   if (!fraccion) return rechazo("incompleto", "Completa los decimales.");
 
-  if (esAmbiguo(entero, fraccion, separador, modo, decimales)) {
-    return rechazo("ambiguo", mensajeAmbiguo(entero, fraccion, separador, modo), true);
-  }
   return cerrar(entero, fraccion, modo, decimales);
 }
 
@@ -252,42 +202,11 @@ export function mensajeDecimales(modo: ModoNumero, decimales: number): string {
   return `Máximo ${cifras}, después de la coma.`;
 }
 
-function esAmbiguo(
-  entero: string,
-  fraccion: string,
-  separador: "," | ".",
-  modo: ModoNumero,
-  decimales: number,
-): boolean {
-  if (fraccion.length !== 3) return false;
-  // Solo es ambiguo si la parte entera podría ser el primer grupo de miles.
-  if (!/^[0-9]{1,3}$/.test(entero) || /^0+$/.test(entero)) return false;
-  // Con tres o más decimales en el campo (ft³: cuatro) la coma es decimal sin
-  // duda: «3,498». El punto sigue sin adivinarse: «3.498» se pide aclarar.
-  if (modo === "dinero") return decimales < 3 || separador === ".";
-  if (modo === "tasa") return separador === ".";
-  return false;
-}
-
-function mensajeAmbiguo(
-  entero: string,
-  fraccion: string,
-  separador: "," | ".",
-  modo: ModoNumero,
-): string {
-  const tecleado = `${entero}${separador}${fraccion}`;
-  const miles = `${entero}${fraccion}`;
-  if (modo === "tasa") {
-    return `«${tecleado}» se puede leer de dos maneras. En la tasa el decimal va con coma: escribe ${entero},${fraccion} si es decimal o ${miles} si son miles.`;
-  }
-  return `«${tecleado}» se puede leer de dos maneras. Si son miles, escribe ${miles} o ${entero}.${fraccion},00. Los centavos van con coma y llevan máximo 2 cifras.`;
-}
-
 function mensajeFormato(modo: ModoNumero): string {
   if (modo === "porcentaje") {
-    return "Escribe el porcentaje con coma para los decimales: 12,5.";
+    return "Escribe el porcentaje con un punto o una coma decimal: 12,5.";
   }
-  return MENSAJE_FORMATO;
+  return "Escribe un número con un solo punto o una sola coma decimal.";
 }
 
 function cerrar(
@@ -302,14 +221,6 @@ function cerrar(
   const parteEntera = entero.replace(/^0+(?=[0-9])/, "") || "0";
   const canonico = fraccion ? `${parteEntera}.${fraccion}` : parteEntera;
   return { ok: true, canonico, decimales: fraccion.length };
-}
-
-function milesBienFormados(valor: string, separador: string): boolean {
-  const grupos = valor.split(separador);
-  return (
-    /^[0-9]{1,3}$/.test(grupos[0]) &&
-    grupos.slice(1).every((grupo) => /^[0-9]{3}$/.test(grupo))
-  );
 }
 
 function rechazo(

@@ -79,9 +79,15 @@ describe("ShipmentDataPanel · peso y CBM tecleados", () => {
     expect(form.checkValidity()).toBe(false);
   });
 
-  it("peso válido en formato venezolano: el formulario es válido y el oculto lleva el decimal de máquina", () => {
+  it("el peso humano rechaza miles y acepta el equivalente sin agrupación", () => {
     const { form, peso, pesoOculto } = abrir();
     fireEvent.change(peso, { target: { value: "2.500,5" } });
+    expect(form.checkValidity()).toBe(false);
+    expect(pesoOculto.value).toBe("");
+    expect(peso.validationMessage).toBe("Escribe el número sin puntos de miles");
+    form.requestSubmit();
+    expect(h.update).not.toHaveBeenCalled();
+    fireEvent.change(peso, { target: { value: "2500,5" } });
     expect(form.checkValidity()).toBe(true);
     expect(pesoOculto.value).toBe("2500.5");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();

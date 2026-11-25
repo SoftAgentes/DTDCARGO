@@ -21,7 +21,6 @@ import { useActionState, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { CarrierTariff, FreightCarrier } from "@/lib/studio/freight-carriers/types";
 import {
-  cbmAFt3,
   ciudadesSinTarifa,
   margenPorCbm,
   margenTone,
@@ -355,7 +354,6 @@ export function TransportistasPanel({
                         <Th align="right">Costo /m³</Th>
                         <Th align="right">Venta /m³</Th>
                         <Th align="right">Margen /m³</Th>
-                        <Th align="right">En ft³</Th>
                         <Th>Cada cuánto sale</Th>
                         {isAdmin && (
                           <Th align="right">
@@ -428,9 +426,6 @@ export function TransportistasPanel({
                               >
                                 {usdConSigno(margen)}
                               </span>
-                            </Td>
-                            <Td align="right" mono soft>
-                              {usd(cbmAFt3(t.priceUsdCbm))}
                             </Td>
                             <Td soft>{t.departureFrequency ?? "—"}</Td>
                             {isAdmin && (
