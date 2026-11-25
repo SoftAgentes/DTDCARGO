@@ -247,19 +247,22 @@ describe("Admin › Tasas · validación", () => {
     );
   });
 
-  // SDD-0687 modo tasa: la coma es el decimal; el punto con tres cifras se aclara.
+  // Opción A: ambos separadores únicos son decimales en modo tasa.
   it.each([
     ["36,500", 36.5],
     ["36,51259999", 36.51259999],
-    ["1.036,5", 1036.5],
+    ["1036,5", 1036.5],
+    ["36.500", 36.5],
   ])("lee «%s» como %s", (rate, esperado) => {
     expect(validateExchangeRateInput(fd({ pair: "VES/USD", rate, valid_on: "2026-10-20" })).input?.rate).toBe(esperado);
   });
 
-  it.each(["36.500", "1,036.50"])("no adivina «%s»: devuelve el mensaje y no guarda", (rate) => {
+  it.each(["1.036,5", "1,036.50"])("rechaza agrupación humana «%s»: devuelve el mensaje y no guarda", (rate) => {
     const r = validateExchangeRateInput(fd({ pair: "VES/USD", rate, valid_on: "2026-10-20" }));
     expect(r.input).toBeUndefined();
-    expect(r.error).toMatch(/dos maneras|1\.234,50/);
+    expect(r.error).toBe("Escribe el número sin puntos de miles");
+    const equivalente = rate === "1.036,5" ? "1036,5" : "1036.50";
+    expect(validateExchangeRateInput(fd({ pair: "VES/USD", rate: equivalente, valid_on: "2026-10-20" })).input?.rate).toBe(1036.5);
   });
 
   it("rechaza una nota de más de 500 caracteres", () => {

@@ -208,26 +208,29 @@ describe("máquina de estados del reclamo", () => {
 describe("validateSupplierClaimInput — manual, sin Zod", () => {
   const supplierCnId = "11111111-1111-1111-1111-111111111111";
 
-  it("acepta el monto en formato 1.234,50 (SDD-0687)", () => {
-    // Antes «1.234,50» se volvía «1.234.50» → NaN → error; ahora es el formato.
+  it("acepta el monto humano sin miles y rechaza el equivalente agrupado (opción A)", () => {
+    // Los montos guardados y formateados no pasan por esta entrada humana.
     const { input, fieldErrors } = validateSupplierClaimInput({
       supplierCnId,
       kind: "dano",
-      amountUsd: "1.234,50",
+      amountUsd: "1234,50",
       description: "Caja rota",
     });
     expect(fieldErrors).toBeUndefined();
     expect(input?.amountUsd).toBe(1234.5);
+    const agrupado = validateSupplierClaimInput({ supplierCnId, kind: "dano", amountUsd: "1.234,50", description: "Caja rota" });
+    expect(agrupado.input).toBeUndefined();
+    expect(agrupado.fieldErrors?.amountUsd).toBe("Escribe el número sin puntos de miles");
   });
 
-  it.each(["1.250", "10.000", "1,234"])("pide aclarar «%s» en vez de guardarlo mil veces menor", (amountUsd) => {
+  it.each(["1.250", "10.000", "1,234"])("rechaza «%s» por precisión sin redondear", (amountUsd) => {
     const { input, fieldErrors } = validateSupplierClaimInput({
       supplierCnId,
       kind: "dano",
       amountUsd,
       description: "Caja rota",
     });
-    expect(fieldErrors?.amountUsd).toMatch(/se puede leer de dos maneras/);
+    expect(fieldErrors?.amountUsd).toMatch(/máximo 2 decimales/);
     expect(input).toBeUndefined();
   });
 

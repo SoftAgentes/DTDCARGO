@@ -48,7 +48,7 @@ describe("SDD-0686 fase 3b-2a · registro, verificar, abrir y p/[token] sin vino
     ["un botón con relleno en vino", "app/registro/link/[token]/RegistroLinkForm.tsx", "bg-accion text-on-accion", "bg-wine text-white"],
     ["un error en vino", "app/registro/correo/[token]/ComprobarCorreoForm.tsx", "mt-4 text-[14px] text-status-danger", "mt-4 text-[14px] text-wine"],
     ["una selección en vino", "app/p/[token]/PackingListGuidedForm.tsx", "border-ink bg-ink text-on-accent", "border-wine-text bg-wine text-on-accent"],
-    ["el Shipping Mark en vino", "app/registro/RegisterForm.tsx", 'tone === "mark" ? "var(--color-ink)"', 'tone === "wine" ? "var(--color-wine)"'],
+    ["el Shipping Mark en vino", "app/registro/RegisterForm.tsx", 'const color = "var(--color-ink)"', 'const color = "var(--color-wine)"'],
     ["un acento editorial en vino", "app/verificar/page.tsx", '<span style={{ color: "var(--color-ink)", fontWeight: 900 }}>diploma.', '<span style={{ color: "var(--color-wine)" }}>diploma.'],
     ["un control de la planilla en vino", PLANILLA, ".pl-doc .addbtn:hover { border-color: var(--color-accion);", ".pl-doc .addbtn:hover { border-color: var(--color-wine);"],
   ])("mutante: %s se detecta", (_, objetivo, de, a) => {

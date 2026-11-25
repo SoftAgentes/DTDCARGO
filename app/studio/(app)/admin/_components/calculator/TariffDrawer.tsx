@@ -15,11 +15,8 @@
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  cbmAFt3,
   margenTone,
-  referenciaFt3Desfasada,
   tardaMasDeLoNormal,
-  usd,
   usdConSigno,
   type CarrierTariff,
   type FreightCarrier,
@@ -63,7 +60,6 @@ export function TariffDrawer({
   const [citySlug, setCitySlug] = useState(tariff?.citySlug ?? "");
   const [costo, setCosto] = useState<number | null>(tariff?.costUsdCbm ?? null);
   const [venta, setVenta] = useState<number | null>(tariff?.priceUsdCbm ?? null);
-  const [ft3, setFt3] = useState<number | null>(tariff?.priceUsdFt3 ?? null);
   const [dias, setDias] = useState<number | null>(tariff?.dispatchFrequencyDays ?? null);
 
   const etiqueta =
@@ -97,7 +93,6 @@ export function TariffDrawer({
 
   const margen = costo != null && venta != null ? Math.round((venta - costo) * 100) / 100 : null;
   const tono = margen == null ? null : margenTone(margen);
-  const desfasada = referenciaFt3Desfasada(venta, ft3);
   const sinCiudades = mode === "create" && availableCities.length === 0;
 
   return (
@@ -239,10 +234,9 @@ export function TariffDrawer({
             >
               {margen == null ? "—" : usdConSigno(margen)}
             </span>
-            {venta != null && (
+            {tono === "negative" && (
               <span style={{ flexBasis: "100%", font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
-                La venta equivale a {usd(cbmAFt3(venta))} por ft³.
-                {tono === "negative" && " La venta queda por debajo del costo: DTD pone la diferencia."}
+                La venta queda por debajo del costo: DTD pone la diferencia.
               </span>
             )}
           </div>
@@ -326,32 +320,6 @@ export function TariffDrawer({
                 aria-invalid={state.fieldErrors?.minChargeUsd ? true : undefined}
               />
               {state.fieldErrors?.minChargeUsd && <FieldError msg={state.fieldErrors.minChargeUsd} />}
-            </div>
-            <div>
-              <label className="studio-label" htmlFor="tariff-ft3">
-                Venta en ft³ (referencia)
-              </label>
-              <NumericInput
-                id="tariff-ft3"
-                name="priceUsdFt3"
-                type="currency"
-                min={0}
-                precision={2}
-                // ft3 se guarda con 4 decimales (cbmAFt3); dinero acepta 2 por defecto.
-                decimales={4}
-                placeholder="3,50"
-                defaultValue={tariff?.priceUsdFt3 ?? null}
-                onChange={setFt3}
-                aria-invalid={state.fieldErrors?.priceUsdFt3 ? true : undefined}
-              />
-              {desfasada ? (
-                <Hint tone="warning">
-                  Ya no coincide con la venta por m³. Actualízala o déjala vacía.
-                </Hint>
-              ) : (
-                <Hint>La oferta original en pie cúbico. No se usa para cobrar.</Hint>
-              )}
-              {state.fieldErrors?.priceUsdFt3 && <FieldError msg={state.fieldErrors.priceUsdFt3} />}
             </div>
           </div>
           <div style={{ marginTop: 12 }}>

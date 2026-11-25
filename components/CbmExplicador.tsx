@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   cbmFromDimensionsEnUnidad,
-  FT3_POR_CBM,
   parseDecimalInput,
   sanitizeDecimalText,
   type UnidadMedida,
@@ -253,11 +252,14 @@ export function CbmExplicador() {
         >
           <span className="font-bold text-ink">Largo</span> ×{" "}
           <span className="font-bold text-ink">Ancho</span> ×{" "}
-          <span className="font-bold text-ink">Alto</span> = CBM
+          <span className="font-bold text-ink">Alto</span> × cantidad = m³ (CBM)
         </p>
         <p className="m-0 text-center text-[12.5px] text-grey-500">
           Las tres medidas en <strong className="text-grey-700">metros</strong>.
           Si las tienes en centímetros o pulgadas, conviértelas primero.
+        </p>
+        <p className="m-0 text-center text-[12.5px] text-grey-500">
+          Ejemplo ficticio: 0,6 × 0,4 × 0,5 m × 2 bultos = 0,24 m³.
         </p>
       </div>
 
@@ -294,7 +296,7 @@ export function CbmExplicador() {
           {
             t: "Si mides en pulgadas",
             f: "(L × A × H) ÷ 61.023,7",
-            d: "Si te lo dan en pies cúbicos (ft³), divide entre 35,3147 para pasarlo a CBM.",
+            d: "Multiplica el volumen de un bulto por la cantidad de bultos iguales.",
           },
         ].map((u) => (
           <div
@@ -411,7 +413,6 @@ export function CbmExplicador() {
             className="text-right text-[12px] tabular-nums text-grey-500"
             style={{ fontFamily: FONT_MONO }}
           >
-            = {fmt(cbmTotal * FT3_POR_CBM, 2)} ft³
             {cajas > 1 && (
               <>
                 <br />
