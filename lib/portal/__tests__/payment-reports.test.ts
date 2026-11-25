@@ -150,15 +150,14 @@ describe("validatePaymentReportInput", () => {
     expect(otro.fieldErrors?.amount).toMatch(/máximo 2 decimales/);
   });
 
-  // SDD-0687 §2.2: antes «1.250» entraba como 1,25 y «10.000» como 10.
-  it.each(["1.250", "10.000", "1.234", "10.999"])("pide aclarar «%s» y no lo acepta mil veces menor", (amount) => {
+  // Opción A: un separador único es decimal; tres cifras exceden la precisión.
+  it.each(["1.250", "10.000", "1.234", "10.999"])("rechaza «%s» por precisión sin redondear", (amount) => {
     const { input, fieldErrors } = validatePaymentReportInput({ ...base, amount }, TODAY);
     expect(input).toBeUndefined();
-    expect(fieldErrors?.amount).toMatch(/se puede leer de dos maneras/);
+    expect(fieldErrors?.amount).toMatch(/máximo 2 decimales/);
   });
 
   it.each([
-    ["1.250,50", 1250.5],
     ["1250,50", 1250.5],
     ["12.50", 12.5],
   ])("acepta «%s» como %s", (amount, esperado) => {
@@ -166,9 +165,11 @@ describe("validatePaymentReportInput", () => {
     expect(input?.amount).toBe(esperado);
   });
 
-  it("rechaza el formato de EE. UU. «1,250.50» con el formato esperado", () => {
-    const { fieldErrors } = validatePaymentReportInput({ ...base, amount: "1,250.50" }, TODAY);
-    expect(fieldErrors?.amount).toMatch(/1\.234,50/);
+  it.each(["1,250.50", "1.250,50"])("rechaza agrupación humana «%s» y acepta el equivalente sin miles", (amount) => {
+    const { input, fieldErrors } = validatePaymentReportInput({ ...base, amount }, TODAY);
+    expect(input).toBeUndefined();
+    expect(fieldErrors?.amount).toBe("Escribe el número sin puntos de miles");
+    expect(validatePaymentReportInput({ ...base, amount: "1250,50" }, TODAY).input?.amount).toBe(1250.5);
   });
 
   it("rechaza método fuera del enum", () => {

@@ -38,7 +38,7 @@ vi.mock("@/lib/studio/role-module-overrides-queries", () => ({
 let db: ReturnType<typeof postgrestOffline>;
 vi.mock("@/lib/db/server", () => ({ createClient: async () => db.client }));
 
-const { saveCarrierAction, setDefaultCarrierAction, deleteCarrierAction } = await import(
+const { saveCarrierAction, saveTariffAction, setDefaultCarrierAction, deleteCarrierAction } = await import(
   "../carrier-actions"
 );
 
@@ -115,6 +115,53 @@ const predeterminados = () =>
 beforeEach(() => {
   revalidatePath.mockClear();
   sembrar();
+});
+
+describe("saveTariffAction · legacy opcional (SDD-0716)", () => {
+  const campos = { carrierId: BENITO, citySlug: "valencia", costUsdCbm: "80", priceUsdCbm: "130" };
+  const tarifaId = "66666666-6666-4666-8666-666666666666";
+
+  function sembrarTarifa(legacy: number | null) {
+    db.store.carrier_tariffs = [{
+      id: tarifaId, tenant_id: TENANT, carrier_id: BENITO,
+      city_slug: "valencia", price_usd_cbm: 100, price_usd_ft3: legacy, deleted_at: null,
+    }];
+  }
+
+  it.each([null, 3, 3.4987])("omite legacy del PATCH y conserva %s en la fila actual", async (legacy) => {
+    sembrarTarifa(legacy);
+    expect(await saveTariffAction({}, form({ ...campos, id: tarifaId }))).toEqual({ ok: true });
+    const [w] = db.escrituras();
+    expect(w.body).not.toHaveProperty("price_usd_ft3");
+    expect(w.params).toEqual(expect.arrayContaining([
+      ["id", `eq.${tarifaId}`], ["tenant_id", `eq.${TENANT}`],
+      ["carrier_id", `eq.${BENITO}`], ["deleted_at", "is.null"],
+    ]));
+    expect(db.fila("carrier_tariffs", tarifaId)?.price_usd_ft3).toBe(legacy);
+    expect(db.fila("carrier_tariffs", tarifaId)?.price_usd_cbm).toBe(130);
+  });
+
+  it.each([["3.4987", 3.4987], ["", null]] as const)("respeta la entrada legacy explícita %s", async (entrada, esperado) => {
+    sembrarTarifa(9);
+    expect(await saveTariffAction({}, form({ ...campos, id: tarifaId, priceUsdFt3: entrada }))).toEqual({ ok: true });
+    expect(db.escrituras()[0].body).toHaveProperty("price_usd_ft3", esperado);
+    expect(db.fila("carrier_tariffs", tarifaId)?.price_usd_ft3).toBe(esperado);
+  });
+
+  it("rechaza legacy explícito inválido sin escribir", async () => {
+    sembrarTarifa(9);
+    const res = await saveTariffAction({}, form({ ...campos, id: tarifaId, priceUsdFt3: "inválido" }));
+    expect(res.fieldErrors?.priceUsdFt3).toBeTruthy();
+    expect(db.escrituras()).toEqual([]);
+    expect(db.fila("carrier_tariffs", tarifaId)?.price_usd_ft3).toBe(9);
+  });
+
+  it("crea con legacy nulo cuando la clave no viene", async () => {
+    db.store.calculator_cities = [{ slug: "valencia", tenant_id: TENANT, deleted_at: null }];
+    db.store.carrier_tariffs = [];
+    expect(await saveTariffAction({}, form(campos))).toEqual({ ok: true });
+    expect(db.escrituras()[0].body).toHaveProperty("price_usd_ft3", null);
+  });
 });
 
 describe("saveCarrierAction · editar", () => {

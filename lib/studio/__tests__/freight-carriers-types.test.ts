@@ -97,8 +97,9 @@ describe("montos escritos como se escriben en Venezuela", () => {
   });
 
   // SDD-0687: el monto de la foto del proveedor no se adivina.
-  it("lee el formato 1.234,50 y no acepta «1.250» como 1,25", () => {
-    expect(parseMonto("1.234,50")).toBe(1234.5);
+  it("rechaza miles en edición humana y conserva la precisión de dos decimales", () => {
+    expect(parseMonto("1.234,50")).toBeNull();
+    expect(parseMonto("1234,50")).toBe(1234.5);
     expect(parseMonto("1.250")).toBeNull();
     expect(parseMonto("10.000")).toBeNull();
     expect(parseMonto("1,234.50")).toBeNull();
@@ -107,8 +108,8 @@ describe("montos escritos como se escriben en Venezuela", () => {
   it("el precio por ft³ admite 4 decimales; el resto, 2", () => {
     expect(parseMonto("3,5125", 4)).toBe(3.5125);
     expect(parseMonto("3,5125")).toBeNull();
-    // El punto no se adivina ni con 4 decimales (H1 de la #790): «3.498» pide aclarar.
-    expect(parseMonto("3.498", 4)).toBeNull();
+    // Opción A: con cuatro decimales, punto y coma únicos son decimales.
+    expect(parseMonto("3.498", 4)).toBe(3.498);
     expect(parseMonto("3,498", 4)).toBe(3.498);
   });
 });

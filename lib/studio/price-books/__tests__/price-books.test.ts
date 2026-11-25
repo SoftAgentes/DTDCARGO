@@ -198,12 +198,14 @@ describe("validateBasePerCbm", () => {
     expect(validateBasePerCbm(" 690,50 ")).toEqual({ value: 690.5 });
   });
 
-  it("lee $1.250,50 y pide aclarar «1.250» (SDD-0687)", () => {
-    expect(validateBasePerCbm("$1.250,50")).toEqual({ value: 1250.5 });
-    expect(validateBasePerCbm("1.250").error).toMatch(/se puede leer de dos maneras/);
+  it("rechaza miles humanos y conserva límites de precisión (opción A)", () => {
+    // Este consumidor conserva su traducción de formato; el analizador y NumericInput dan el mensaje común.
+    expect(validateBasePerCbm("$1.250,50")).toEqual({ error: "El precio pactado es un número, por ejemplo 690 o 690,50." });
+    expect(validateBasePerCbm("$1250,50")).toEqual({ value: 1250.5 });
+    expect(validateBasePerCbm("1.250").error).toMatch(/máximo 2 decimales/);
     expect(validateBasePerCbm("690,5055").error).toMatch(/máximo 2 decimales/);
-    // Tres cifras tras una coma única son ambiguas en dinero: se pide aclarar.
-    expect(validateBasePerCbm("690,505").error).toMatch(/se puede leer de dos maneras/);
+    // Tres cifras tras un separador decimal exceden la precisión de este campo.
+    expect(validateBasePerCbm("690,505").error).toMatch(/máximo 2 decimales/);
   });
 
   it("rechaza el 0, el negativo y el error de tecleo", () => {

@@ -1401,7 +1401,7 @@ export function PackingListFormSection({
           font: 700 8.5px/1 var(--font-jetbrains-mono), ui-monospace, monospace;
           border-radius: 999px; padding: 3px 7px; min-height: 0;
         }
-        .pl-doc .grpTog:hover { background: rgba(31,79,168,0.14); }
+        .pl-doc .grpTog:hover { background: color-mix(in srgb, var(--color-accion) 14%, transparent); }
         .pl-doc .grpTog .chev {
           width: 0; height: 0; border-left: 4px solid currentColor;
           border-top: 3px solid transparent; border-bottom: 3px solid transparent;

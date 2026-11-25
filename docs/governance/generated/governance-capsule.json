@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-11-12T00:00:00.000Z",
-  "sourceCommit": "a6203a55183bb54e3a1585e907599da93c092841",
+  "generatedAt": "2026-11-24T00:00:00.000Z",
+  "sourceCommit": "8580490f8d95872a407ab83ab9acb6b1b265a451",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -147,8 +147,8 @@
     {
       "code": "NUM-01",
       "version": "1.2",
-      "state": "aprobada — componente canónico; adopción gradual · v1.2 pendiente de confirmación de Sam",
-      "approvedAt": "2026-07-30",
+      "state": "aprobada v1.2 — opción A; componente canónico, adopción gradual",
+      "approvedAt": "2026-11-24",
       "path": "docs/governance/policies/num-01.md"
     },
     {
