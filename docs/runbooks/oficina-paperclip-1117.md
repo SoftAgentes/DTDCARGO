@@ -88,7 +88,7 @@ Verificar `sha256sum -c` y `tar -tzf` en cada archivo de respaldo, manteniendo e
 
 ### 4.1 Puerta fría para copia y restauración
 
-Antes y después de copiar, y antes de tocar rutas al volver atrás, la misma comprobación exige todos los resultados de esta tabla. Usar las rutas y binarios identificados en §3.2 con el dueño del clúster.
+Exigir todos los resultados de esta tabla en la base de origen antes y después de copiar. Exigirlos también en la base de origen restaurada, antes de arrancarla. Para preservar un destino 1117 que falló, aplicar §8.1. Usar las rutas y binarios identificados en §3.2 con el dueño del clúster.
 
 | Comprobación | Condición para seguir |
 | --- | --- |
@@ -219,7 +219,8 @@ El puente permanece detenido durante §6 y los smokes 5.1–5.4 y 5.6. Solo el o
 ~~~bash
 if cierre_paperclip=$(identidad_paperclip) &&
    [[ "$cierre_paperclip" == "$arranque_paperclip" ]] &&
-   [[ "$(curl --max-time 3 -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/api/ready)" == 200 ]] &&
+   estado_ready_cierre=$(curl --max-time 3 -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/api/ready) &&
+   [[ "$estado_ready_cierre" == 200 ]] &&
    cierre_paperclip=$(identidad_paperclip) &&
    [[ "$cierre_paperclip" == "$arranque_paperclip" ]]; then
   printf '%s\n' 'PASÓ: smokes cerrados en la misma invocación sin reinicios'
@@ -235,12 +236,22 @@ Parar ante regresión de permisos o envoltorios, fallo de readiness/diario, tare
 
 ## 8. Volver atrás
 
-1. Cerrar entradas, detener el puente y la unidad manual y completar la puerta fría de §4.1, con dos lecturas de `inactive` y `MainPID=0` separadas por 30 s. Si quedan trabajos de smoke vivos, cancelarlos antes del stop cuando el servicio responda. Conservar la evidencia de ensayo de esa misma copia de §4.2.
-2. Verificar el corte de §4 por SHA-256 desde la copia de restauración anotada. Conservar en cuarentena, con sello UTC y modo privado, el directorio de instancia 1117, su CLI, configuración y almacenamiento de skills, junto a cualquier estado del puente tocado por el smoke. Usar los movimientos de archivo del [§8 del guion 1106](oficina-paperclip-1106.md#8-volver-atrás-paso-a-paso), sustituyendo 1106 por 1117 para las rutas de cuarentena y usando el respaldo de esta ventana. Apartar el drop-in 1117 completo; una extracción encima dejaría archivos que no estaban en la copia.
+1. Cerrar entradas, detener el puente y la unidad manual, y acreditar el aislamiento y la ausencia de escritores de §8.1. Si quedan trabajos de smoke vivos, cancelarlos antes del stop cuando el servicio responda. Conservar la evidencia de ensayo de esa misma copia de §4.2.
+2. Verificar el corte de §4 por SHA-256 desde la copia de restauración anotada. Conservar en cuarentena, con sello UTC y modo privado, el directorio de instancia 1117, su CLI, configuración y almacenamiento de skills, junto a cualquier estado del puente tocado por el smoke. Usar los movimientos de archivo del [§8 del guion 1106](oficina-paperclip-1106.md#8-volver-atrás-paso-a-paso), sustituyendo 1106 por 1117 para las rutas de cuarentena y usando el respaldo de esta ventana. Apartar el drop-in 1117 completo; una extracción encima dejaría archivos que no estaban en la copia. Confirmar que quedó preservado el destino y que las rutas donde se restaurará el origen están vacías.
 3. Restaurar en frío el conjunto exacto de §4: instancia y base, ejecutable gestionado y configuración, unidad y drop-ins previos, skills, rutas externas y, si se modificó desde la copia, estado del puente. Restaurar dueños, permisos y enlaces. Hacer `daemon-reload` y comprobar versión de origen y puerta fría de la base restaurada antes del arranque. `update --rollback` solo cambia el programa y no revierte las migraciones.
 4. Arrancar la unidad manual de origen una vez. Confirmar salud y diario de origen, permisos, los checks 5.1–5.4 autorizados, y reabrir el puente tras su smoke. Conservar la cuarentena y el respaldo para revisión. Si no se puede demostrar que el conjunto restaurado pertenece al mismo corte, dejar el servicio detenido y escalar a Sam.
 
 Las escrituras entre la copia y la restauración se pierden. El cierre registra origen, destino, sello del respaldo, horas UTC, resultados individuales, decisión tomada y responsable, sin valores sensibles.
+
+### 8.1 Aislar y preservar un destino 1117 fallido
+
+Mantener cerradas las entradas y desactivados los disparadores y supervisores que puedan arrancar otra instancia o escribir en las rutas del destino. Antes de mover archivos, tomar dos lecturas separadas por 30 s y registrar todos estos resultados, incluso si el estado de control indica cierre sucio.
+
+- Unidad, puente y escritores inventariados en `inactive` y `MainPID=0`, o detenidos según su supervisor. Cgroups capturados y descendientes vacíos. Verificar también que no quedó otra instancia de PostgreSQL o un worker por fuera de esos grupos.
+- Inventario de procesos con visibilidad suficiente para cotejar cualquier PID de `postmaster.pid` con la identidad del proceso, el inicio de esa ejecución y su relación con las rutas del clúster. Un PID ausente o inequívocamente reutilizado permite tratar el archivo como obsoleto. Si el PID está vivo con identidad dudosa, la comprobación queda pendiente.
+- Ausencia de listener y socket del clúster mediante las lecturas de `ss` de §4.1. Ausencia de archivos abiertos en PGDATA, tablaspaces, WAL, estado del puente y almacenamiento del destino con `lsof -t +D` y permisos suficientes. Un error de enumeración deja la comprobación pendiente.
+
+El estado de `pg_controldata` y la presencia de `postmaster.pid` se registran como evidencia del destino. Si las comprobaciones independientes acreditan que no hay escritores y el aislamiento sigue vigente, preservar 1117 tal cual en cuarentena, incluido un PID obsoleto, WAL y el estado de control. El estado sucio del destino queda en el recibo. Mantener el destino aislado y usar solo la copia de origen validada para restaurar. El cierre limpio sigue siendo obligatorio para la copia de origen y la base restaurada según §4.1. Si queda un escritor, una lectura falla o un PID no puede atribuirse con certeza, mantener el servicio cerrado y escalar sin mover archivos. No borrar el PID, reparar el clúster ni reactivar 1117 para forzar un cierre limpio.
 
 ## 9. Evidencia de esta entrega
 

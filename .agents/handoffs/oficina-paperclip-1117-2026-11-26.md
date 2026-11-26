@@ -20,8 +20,8 @@ Dejar a Sam un guion revisable para pasar la Oficina a Paperclip 2026.1117.0, co
 | `pnpm run governance:check` | PASÓ, cápsula de 29 políticas vigente |
 | `pnpm run sdd:check` | PASÓ, 697 specs y 556 migraciones, avisos históricos conservados |
 | Sintaxis Bash y rutas relativas | PASÓ, siete bloques y sus comandos de Bash anidados |
-| Puerta de disponibilidad y estabilidad | PASÓ, 9/9 casos locales sobre los bloques del guion con dobles de `systemctl`, tiempo y HTTP. Verifica 200 estable, vencimiento, reinicio, cambio de invocación tras un 200 e invocación vacía. |
-| Restauración de la copia durable, barreras de trabajo y controles de permisos | NO EJECUTADO. El runbook exige comprobaciones y recibos antes de la intervención y reapertura. |
+| Puerta de disponibilidad y estabilidad | PASÓ, 11/11 casos locales sobre los bloques del guion con dobles de `systemctl`, tiempo y HTTP. Incluye respuesta con 200 en stdout y exit 18 tanto en arranque como en cierre. El contraste histórico reprodujo el falso positivo del cierre en `ea7ed5e1a`. |
+| Restauración de la copia durable, preservación del destino fallido, barreras de trabajo y permisos | NO EJECUTADO. El runbook exige comprobaciones y recibos antes de la intervención y reapertura. |
 | `git diff --check` | PASÓ |
 | `paperclipai update --help` en instalación de la Oficina | NO EJECUTADO. Los switches están confirmados por código del tag y el guion incluye su lectura antes y después. |
 | Línea base de la Oficina | [MEDIDO] NO EJECUTADO |
@@ -31,7 +31,7 @@ La invocación predeterminada de pnpm 12 inició comprobación de dependencias y
 
 ## COMMITS
 
-El borrador `8bbbc51cd97d82fd9ec3a3e0b2a31e0c051fee2e` recibió CHANGES_REQUESTED de OrKita. El commit siguiente corrige las puertas fría, de restauración, arranque y reapertura, delimita T-15 de solo lectura y coteja los nombres de entorno por adaptador. Ambos commits se limitan a los mismos tres documentos y están sobre la base actualizada en el hijo.
+El borrador `8bbbc51cd97d82fd9ec3a3e0b2a31e0c051fee2e` recibió CHANGES_REQUESTED de OrKita. `ea7ed5e1a736c8cb6a5b11c2980a092b6aac1e35` delimitó T-15, añadió comprobaciones de restauración y arranque y cotejó el entorno por adaptador. OrKita reportó dos bloqueos adicionales sobre ese SHA. El commit de seguimiento exige exit 0 además de HTTP 200 en el cierre y distingue la preservación de un destino fallido mediante prueba de aislamiento y ausencia de escritores del cierre limpio obligatorio del origen. El alcance acumulado sigue limitado a los mismos tres documentos.
 
 ## PR / BRANCH
 
