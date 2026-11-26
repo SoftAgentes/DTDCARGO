@@ -19,7 +19,9 @@ Dejar a Sam un guion revisable para pasar la Oficina a Paperclip 2026.1117.0, co
 | `pnpm run docs:check` | PASÓ, 697 specs |
 | `pnpm run governance:check` | PASÓ, cápsula de 29 políticas vigente |
 | `pnpm run sdd:check` | PASÓ, 697 specs y 556 migraciones, avisos históricos conservados |
-| Sintaxis Bash y rutas relativas | PASÓ, seis bloques y sus comandos de Bash anidados |
+| Sintaxis Bash y rutas relativas | PASÓ, siete bloques y sus comandos de Bash anidados |
+| Puerta de disponibilidad y estabilidad | PASÓ, 9/9 casos locales sobre los bloques del guion con dobles de `systemctl`, tiempo y HTTP. Verifica 200 estable, vencimiento, reinicio, cambio de invocación tras un 200 e invocación vacía. |
+| Restauración de la copia durable, barreras de trabajo y controles de permisos | NO EJECUTADO. El runbook exige comprobaciones y recibos antes de la intervención y reapertura. |
 | `git diff --check` | PASÓ |
 | `paperclipai update --help` en instalación de la Oficina | NO EJECUTADO. Los switches están confirmados por código del tag y el guion incluye su lectura antes y después. |
 | Línea base de la Oficina | [MEDIDO] NO EJECUTADO |
@@ -29,7 +31,7 @@ La invocación predeterminada de pnpm 12 inició comprobación de dependencias y
 
 ## COMMITS
 
-Un commit documental en la rama propia con los dos documentos y este handoff. La base se actualizó con fast-forward en el hijo.
+El borrador `8bbbc51cd97d82fd9ec3a3e0b2a31e0c051fee2e` recibió CHANGES_REQUESTED de OrKita. El commit siguiente corrige las puertas fría, de restauración, arranque y reapertura, delimita T-15 de solo lectura y coteja los nombres de entorno por adaptador. Ambos commits se limitan a los mismos tres documentos y están sobre la base actualizada en el hijo.
 
 ## PR / BRANCH
 
