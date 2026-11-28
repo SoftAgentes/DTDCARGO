@@ -266,3 +266,14 @@ Con esto, todos los pendientes de decisión de esta spec quedan cerrados.
 ## 12. Límites
 
 Las cifras son conteos de código; no se abrió ninguna pantalla. Un número suelto puede coincidir con el token y verse bien. El orden por «operación diaria» es inferencia: no se midió el uso real de cada módulo.
+
+## 13. Corte local independiente: foco de Rutas (2026-11-28)
+
+Base asignada `d26a2e7879d155a87ab3fb0ba9c2d90ea256d02c`; task `task_79d60e57ce56`.
+Allowlist exacta de este corte:
+- `app/studio/(app)/admin/rutas/_components/CityPicker.tsx`
+- `app/studio/(app)/admin/rutas/__tests__/city-picker-focus.test.tsx`
+- `docs/specs/0688-rebrand-simetria-pantallas/spec.md` (esta adenda)
+- `.agents/handoffs/task_79d60e57ce56.md`
+
+Recuperar únicamente el foco del disparador de la instancia al escoger una ciudad existente, reutilizando el hunk de `df18bf5424`; conservar alta inline y cierres externos. No incluye el rebrand ni CityDrawer de calculadora. Aceptación: demostrar base roja y candidato verde con dos selectores controlados, Tab al siguiente control, clic externo sin robo de foco y una llamada por selección. A11Y-01: cumplimiento focal por comprobar; semántica BTN-01 y filtro BUS-01 conservados. No aplica cambio de permisos, persistencia, componentes nuevos ni catálogos. No equivale a cerrar la SDD completa.
