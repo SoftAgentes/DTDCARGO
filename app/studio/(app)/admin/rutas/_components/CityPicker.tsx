@@ -66,6 +66,7 @@ export function CityPicker({
   });
   const [isPending, startTransition] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -193,6 +194,7 @@ export function CityPicker({
     >
       {label && <label className="studio-label">{label}</label>}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
@@ -309,7 +311,11 @@ export function CityPicker({
                     <button
                       key={c.id}
                       type="button"
-                      onClick={() => pick(c.city)}
+                      onClick={() => {
+                        pick(c.city);
+                        const trigger = triggerRef.current;
+                        if (trigger && !trigger.disabled) trigger.focus();
+                      }}
                       style={{
                         width: "100%",
                         padding: "9px 12px",
